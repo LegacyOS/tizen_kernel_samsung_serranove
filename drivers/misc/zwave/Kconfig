@@ -1,0 +1,4 @@
+config ZWAVE
+	bool "ZWAVE Driver"
+	default n
+

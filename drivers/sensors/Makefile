@@ -1,0 +1,10 @@
+obj-$(CONFIG_SENSORS)		+= sensors_core.o
+obj-$(CONFIG_SENSORS_SSC)	+= sensors_ssc.o
+obj-$(CONFIG_SENSORS_K2HH)	+= k2hh.o
+obj-$(CONFIG_SENSORS_BMA2X2)	+= bma2x2_driver.o bst_sensor_common.o
+obj-$(CONFIG_SENSORS_BMM050)	+= bmm050_driver.o bmm050.o
+obj-$(CONFIG_SENSORS_GP2A002)	+= gp2a002.o
+obj-$(CONFIG_SENSORS_IMS1911)	+= ims1911.o
+obj-$(CONFIG_SENSORS_CM36672P)	+= cm36672p.o
+obj-$(CONFIG_SENSORS_MPU6500)	+= mpu6500/
+obj-$(CONFIG_SENSORS_YAS532)	+= yas532/

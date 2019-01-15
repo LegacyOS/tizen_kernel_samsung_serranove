@@ -1,0 +1,93 @@
+#config SENSORS
+#	bool "Sensors Class Support"
+#	help
+#	  This option enables the sensor sysfs class in /sys/class/sensors.
+#	  You'll need this to do anything useful with sensorss. If unsure, say N.
+
+config SENSORS_SSC
+	bool "Enable Sensors Driver Support for SSC"
+	help
+	  Add support for sensors SSC driver.
+	  This driver is used for exercising sensors use case,
+	  time syncing with ADSP clock.
+
+menuconfig SENSORS
+	bool "Sensor devices"
+	help
+	  Say Y here, and a list of sensors drivers will be displayed.
+	  Everything that didn't fit into the other categories is here. This option
+	  doesn't affect the kernel.
+
+	  If unsure, say Y.
+
+config SENSORS_K2HH
+	depends on I2C
+	tristate "SENSORS_K2HH"
+	default n
+	help
+	  Say Y here if you use SENSORS_K2HH.
+	  This option enables accelerometer sensors using
+	  STMicroelectronic K2HH device driver.
+
+config SENSORS_K2HH_SW_I2C
+	depends on I2C
+	tristate "SENSORS_K2HH use SW I2C"
+	default n
+	help
+	  Say Y here if you use SENSORS_K2HH SW I2C.
+
+config SENSORS_BMA2X2
+	tristate "BMA255/BMA250E/BMA222E/BMA280 acceleration sensor support"
+	depends on I2C=y
+	help
+	  If you say yes here you get support for Bosch Sensortec's
+	  acceleration sensors BMA255/BMA250E/BMA222E/BMA280.
+
+config SENSORS_BMM050
+	tristate "BMM050 Magnetic Sensor Driver"
+	depends on I2C=y
+	help
+	 BMM050 Magnetic Sensor Driver implemented by Bosch-Sensortec.
+
+config SENSORS_GP2A002
+	tristate "GP2A002 proximity sensor support"
+	depends on I2C
+	default n
+	help
+	  If you say yes here you get support for sharp Sensortec's
+	  proximity sensors GP2A002.
+
+config SENSORS_IMS1911
+	tristate "IMS1911 proximity sensor support"
+	depends on I2C
+	default n
+	help
+	  If you say yes here you get support for ITM Sensortec's
+	  proximity sensors SENSORS_IMS1911.
+
+config SENSORS_CM36672P
+	tristate "CM36672P driver"
+	depends on I2C
+	default n
+	help
+	  If you say yes here you got support for Capella
+	  CM36672P proximity driver.
+
+config SENSORS_CM36672P_LEDA_EN_GPIO
+	tristate "CM36672P leda_en controlled by GPIO"
+	depends on I2C
+	help
+	  This option enables leda_en controlled by GPIO using CM36672P driver.
+
+config WAKE_UP_MOTION
+	bool "auto-motion wakeup"
+	default n
+	help
+	  Say Y here if you want support for auto wakeup-mode of the K2HH sensor
+	  device.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called K2HH.
+
+source "drivers/sensors/mpu6500/Kconfig"
+source "drivers/sensors/yas532/Kconfig"

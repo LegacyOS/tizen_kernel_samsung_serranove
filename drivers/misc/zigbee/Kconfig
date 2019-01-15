@@ -1,0 +1,4 @@
+config ZIGBEE
+	bool "ZigBee Driver"
+	default n
+
