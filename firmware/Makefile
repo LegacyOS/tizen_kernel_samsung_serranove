@@ -154,8 +154,8 @@ fw-shipped-$(CONFIG_TOUCHSCREEN_IST30XXC) += tsp_imagis/ist3038c_j5_octa.fw
 fw-shipped-$(CONFIG_TOUCHSCREEN_IST30XXC) += tsp_imagis/ist3038c_j5_octa_cmcs.bin
 endif
 
-fw-shipped-$(CONFIG_TOUCHSCREEN_IMAGIS_IST30XXC) += tsp_imagis/ist3038c_Z3_3G.fw
-fw-shipped-$(CONFIG_TOUCHSCREEN_IMAGIS_IST30XXC) += tsp_imagis/ist3038c_Z3_3G_cmcs.bin
+#fw-shipped-$(CONFIG_TOUCHSCREEN_IMAGIS_IST30XXC) += tsp_imagis/ist3038c_Z3_3G.fw
+#fw-shipped-$(CONFIG_TOUCHSCREEN_IMAGIS_IST30XXC) += tsp_imagis/ist3038c_Z3_3G_cmcs.bin
 
 
 fw-shipped-all := $(fw-shipped-y) $(fw-shipped-m) $(fw-shipped-)

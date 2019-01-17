@@ -30,6 +30,9 @@ obj-$(CONFIG_FB_MSM_MDSS_EDP_PANEL) += mdss_edp_aux.o
 obj-$(CONFIG_FB_MSM_MDSS_OLED_PANEL) += mdss_dsi_panel_oled.o
 obj-$(CONFIG_FB_PANEL_S6E8AA5X01) += smart_dimming_s6e8aa5x01.o
 
+# SERRANOVE panel
+obj-$(CONFIG_PANEL_S6E88A0_AMS427AP24_QHD) += S6E88A0_AMS427AP24/
+
 obj-$(CONFIG_FB_MSM_MDSS) += mdss_io_util.o
 obj-$(CONFIG_FB_MSM_MDSS_HDMI_PANEL) += mdss_hdmi_tx.o
 obj-$(CONFIG_FB_MSM_MDSS_HDMI_PANEL) += mdss_hdmi_util.o

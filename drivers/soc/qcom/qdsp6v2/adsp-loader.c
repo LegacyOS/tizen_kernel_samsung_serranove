@@ -95,7 +95,7 @@ static void adsp_loader_do(struct platform_device *pdev)
 			if (IS_ERR(priv->pil_h)) {
 				dev_err(&pdev->dev, "%s: pil get failed,\n",
 					__func__);
-#ifdef CONFIG_SEC_Z3LTE_CIS_PROJECT
+#ifdef CONFIG_SEC_Z3LTE_CIS_PROJECT || CONFIG_SEC_SERRANOVE_PROJECT
 				priv->pil_h = subsystem_get("modem");
 				if (IS_ERR(priv->pil_h)) {
 					dev_err(&pdev->dev,

@@ -15,6 +15,20 @@ dtb-$(CONFIG_SEC_Z3LTE_CIS_PROJECT) += msm8916-tizen_z3lte_cis-r00.dtb\
 dtb-$(CONFIG_SEC_Z3LTE_CHN_PROJECT) += msm8916-tizen_z3lte_chn-r00.dtb\
 					msm8916-tizen_z3lte_chn-r01.dtb
 
+ifeq ($(CONFIG_SEC_SERRANOVE_PROJECT),y)
+	ifeq ($(CONFIG_MACH_SERRANOVELTE_EUR_OPEN),y)
+		dtb-y += msm8916-sec-serranovelte-eur-r00.dtb
+		dtb-y += msm8916-sec-serranovelte-eur-r01.dtb
+		dtb-y += msm8916-sec-serranovelte-eur-r02.dtb
+		dtb-y += msm8916-sec-serranovelte-eur-r03.dtb
+	else ifeq ($(CONFIG_MACH_SERRANOVE3G_EUR_OPEN),y)
+		dtb-y += msm8916-sec-serranove3g-eur-r00.dtb
+		dtb-y += msm8916-sec-serranove3g-eur-r01.dtb
+		dtb-y += msm8916-sec-serranove3g-eur-r02.dtb
+		dtb-y += msm8916-sec-serranove3g-eur-r03.dtb
+	endif
+endif
+
 dtb-$(CONFIG_SEC_MILLET_PROJECT) += msm8916-tizen_millet-r00.dtb
 
 dtb-$(CONFIG_SEC_HIVE_PROJECT) += msm8916-tizen_hive-r00.dtb \

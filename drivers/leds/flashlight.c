@@ -276,7 +276,7 @@ struct flashlight_device *flashlight_device_register(const char *name,
 
 	mutex_init(&flashlight_dev->ops_lock);
 #if defined(CONFIG_SEC_FORTUNA_PROJECT) || defined(CONFIG_SEC_J5LTE_PROJECT) || \
-	defined(CONFIG_SEC_Z3LTE_CHN_PROJECT) || defined(CONFIG_SEC_Z3LTE_CIS_PROJECT)
+	defined(CONFIG_SEC_Z3LTE_CHN_PROJECT) || defined(CONFIG_SEC_Z3LTE_CIS_PROJECT) || defined(CONFIG_SEC_SERRANOVE_PROJECT)
 	flashlight_dev->dev.class = flashlight_class;
 #endif
 	flashlight_dev->dev.parent = parent;
@@ -491,7 +491,7 @@ EXPORT_SYMBOL(flashlight_strobe);
 #endif
 
 #if defined(CONFIG_SEC_FORTUNA_PROJECT) || defined(CONFIG_SEC_J5LTE_PROJECT) || \
-	defined(CONFIG_SEC_Z3LTE_CHN_PROJECT) || defined(CONFIG_SEC_Z3LTE_CIS_PROJECT)
+	defined(CONFIG_SEC_Z3LTE_CHN_PROJECT) || defined(CONFIG_SEC_Z3LTE_CIS_PROJECT)  || defined(CONFIG_SEC_SERRANOVE_PROJECT)
 static int flashlight_match_device_by_name(struct device *dev, const void *data)
 {
 	const char *name = data;
@@ -505,7 +505,7 @@ struct flashlight_device *find_flashlight_by_name(char *name)
 	if (!name)
 		return (struct flashlight_device *)NULL;
 #if defined(CONFIG_SEC_FORTUNA_PROJECT) || defined(CONFIG_SEC_J5LTE_PROJECT) || \
-	defined(CONFIG_SEC_Z3LTE_CHN_PROJECT) || defined(CONFIG_SEC_Z3LTE_CIS_PROJECT)
+	defined(CONFIG_SEC_Z3LTE_CHN_PROJECT) || defined(CONFIG_SEC_Z3LTE_CIS_PROJECT)  || defined(CONFIG_SEC_SERRANOVE_PROJECT)
 	dev = class_find_device(flashlight_class, NULL, name,
 	flashlight_match_device_by_name);
 

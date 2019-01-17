@@ -24,11 +24,11 @@
 #include <linux/magic.h>
 
 #include "mdnie_lite.h"
-#if defined (CONFIG_FB_PANEL_S6E8AA5X01)
+//#if defined (CONFIG_FB_PANEL_S6E8AA5X01)
 #include "mdnie_lite_table_s6e8aa5x01.h"
-#else
-#error Special panel operation must be include
-#endif
+//#else
+//#error Special panel operation must be include
+//#endif
 
 #define MDNIE_SYSFS_PREFIX		"/opt/usr/media/"
 

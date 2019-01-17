@@ -84,6 +84,13 @@ config FB_PANEL_S6E8AA5X01
 	MDSS Samsung S6E8AA5X01 OLED Panel support
 	it can be support S6E8AA5X01 smart dimming feature
 
+config PANEL_S6E88A0_AMS427AP24_QHD
+	depends on FB_MSM_MDSS_OLED_PANEL
+	bool "LSI S6E88A0 LDI"
+	default n
+	---help---
+	LSI S6E88A0 LDI 540_960 SERRANOVE
+
 config MDSS_MDNIE_LITE_TUNING
 	depends on FB_MSM_MDSS_OLED_PANEL
 	bool "Support mdnie tuning"
