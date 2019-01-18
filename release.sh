@@ -12,8 +12,13 @@ DZIMAGE="dzImage"
 MODEL=${1}
 REGION=${2}
 TIZEN_MODEL=tizen_${MODEL}
+output_path="./output"
 
+	if [ ! -d "$output_path" ]; then
+	   mkdir "$output_path"
+	fi
 
+makeflags+=" O=${output_path}"
 
 if [ "${REGION}" != "" ]; then
 	TIZEN_MODEL=${TIZEN_MODEL}_${REGION}
@@ -37,13 +42,13 @@ if [ "${MODEL}" = "" ]; then
 	exit
 fi
 
-make ARCH=${ARM} ${TIZEN_MODEL}_defconfig
+make ${makeflags} ARCH=${ARM} ${TIZEN_MODEL}_defconfig
 if [ "$?" != "0" ]; then
 	echo "Failed to make defconfig :"$ARCH
 	exit 1
 fi
 
-make ${JOBS} ARCH=${ARM} ${IMAGE}
+make ${makeflags} ${JOBS} ARCH=${ARM} ${IMAGE}
 if [ "$?" != "0" ]; then
 	echo "Failed to make "${IMAGE}
 	exit 1
@@ -53,7 +58,7 @@ DTC_PATH="scripts/dtc/"
 
 rm ${BOOT_PATH}/dts/*.dtb -f
 
-make ARCH=${ARM} dtbs
+make ${makeflags} ARCH=${ARM} dtbs
 if [ "$?" != "0" ]; then
 	echo "Failed to make dtbs"
 	exit 1

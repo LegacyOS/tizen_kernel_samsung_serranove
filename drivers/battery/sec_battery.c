@@ -2043,9 +2043,10 @@ static unsigned int sec_bat_get_polling_time(
 			if ((!(battery->pdata->full_condition_type &
 				SEC_BATTERY_FULL_CONDITION_NOSLEEPINFULL) &&
 				battery->charging_mode ==
-				SEC_BATTERY_CHARGING_NONE) &&
-				battery->swelling_mode ==
-				SEC_BATTERY_NORMAL_MODE)
+				SEC_BATTERY_CHARGING_NONE))
+		#if defined(CONFIG_BATTERY_SWELLING)
+		if(battery->swelling_mode == SEC_BATTERY_NORMAL_MODE)
+		#endif
 				battery->polling_time =
 					battery->pdata->polling_time[
 					SEC_BATTERY_POLLING_TIME_SLEEP];
