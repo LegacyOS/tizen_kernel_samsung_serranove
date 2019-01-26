@@ -88,15 +88,10 @@ static int fb_event_callback(struct notifier_block *self,
 				struct dsi_status_data, fb_notifier);
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	struct mdss_panel_info *pinfo;
+	struct msm_fb_data_type *mfd;
 
-	pdata->mfd = evdata->info->par;
-
-	if (!pdata->mfd->pdev){
-		pr_err("%s: DSI pdev not available\n", __func__);
-		return NOTIFY_BAD;
-	}
-
-	ctrl_pdata = container_of(dev_get_platdata(&pdata->mfd->pdev->dev),
+	mfd = evdata->info->par;
+	ctrl_pdata = container_of(dev_get_platdata(&mfd->pdev->dev),
 				struct mdss_dsi_ctrl_pdata, panel_data);
 	if (!ctrl_pdata) {
 		pr_err("%s: DSI ctrl not available\n", __func__);
@@ -115,6 +110,12 @@ static int fb_event_callback(struct notifier_block *self,
 		return NOTIFY_DONE;
 	}
 
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	ctrl_pdata->panel_data.event_handler(&ctrl_pdata->panel_data, MDSS_SAMSUNG_EVENT_FB_EVENT_CALLBACK, &interval );
+#endif
+
+	pdata->mfd = evdata->info->par;
+
 	if (event == FB_EVENT_BLANK && evdata) {
 		int *blank = evdata->data;
 		struct dsi_status_data *pdata = container_of(self,
@@ -123,14 +124,22 @@ static int fb_event_callback(struct notifier_block *self,
 
 		switch (*blank) {
 		case FB_BLANK_UNBLANK:
-			schedule_delayed_work(&pdata->check_status,
-				msecs_to_jiffies(interval));
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+			if (!ctrl_pdata->status_mode == ESD_REG_IRQ)
+#endif
+				schedule_delayed_work(&pdata->check_status,
+					msecs_to_jiffies(interval));
 			break;
 		case FB_BLANK_POWERDOWN:
 		case FB_BLANK_HSYNC_SUSPEND:
 		case FB_BLANK_VSYNC_SUSPEND:
 		case FB_BLANK_NORMAL:
-			cancel_delayed_work(&pdata->check_status);
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+			if (ctrl_pdata->status_mode == ESD_REG_IRQ)
+				cancel_work_sync(&pdata->check_status.work);
+			else
+#endif
+				cancel_delayed_work(&pdata->check_status);
 			break;
 		default:
 			pr_err("Unknown case in FB_EVENT_BLANK event\n");

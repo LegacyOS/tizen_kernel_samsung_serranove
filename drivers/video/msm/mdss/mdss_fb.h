@@ -65,10 +65,26 @@
  */
 enum mdp_notify_event {
 	MDP_NOTIFY_FRAME_BEGIN = 1,
+	MDP_NOTIFY_FRAME_CFG_DONE,
+	MDP_NOTIFY_FRAME_CTX_DONE,
 	MDP_NOTIFY_FRAME_READY,
 	MDP_NOTIFY_FRAME_FLUSHED,
 	MDP_NOTIFY_FRAME_DONE,
 	MDP_NOTIFY_FRAME_TIMEOUT,
+};
+
+/**
+ * enum mdp_split_mode - Lists the possible split modes in the device
+ *
+ * @MDP_SPLIT_MODE_NONE: Not a Dual display, no panel split.
+ * @MDP_SPLIT_MODE_LM:   Dual Display is true, Split across layer mixers
+ * @MDP_SPLIT_MODE_DST:  Dual Display is true, Split is in the Destination
+ *                      i.e ping pong split.
+ */
+enum mdp_split_mode {
+	MDP_SPLIT_MODE_NONE,
+	MDP_SPLIT_MODE_LM,
+	MDP_SPLIT_MODE_DST,
 };
 
 struct disp_info_type_suspend {
@@ -90,6 +106,8 @@ struct msm_sync_pt_data {
 	char *fence_name;
 	u32 acq_fen_cnt;
 	struct sync_fence *acq_fen[MDP_MAX_FENCE_FD];
+	u32 temp_fen_cnt;
+	struct sync_fence *temp_fen[MDP_MAX_FENCE_FD];
 
 	struct sw_sync_timeline *timeline;
 	int timeline_value;
@@ -164,7 +182,7 @@ struct msm_fb_data_type {
 
 	struct panel_id panel;
 	struct mdss_panel_info *panel_info;
-	int split_display;
+	int split_mode;
 	int split_fb_left;
 	int split_fb_right;
 
@@ -177,8 +195,10 @@ struct msm_fb_data_type {
 	int op_enable;
 	u32 fb_imgType;
 	int panel_reconfig;
+	u32 panel_orientation;
 
 	u32 dst_format;
+	int resume_state;
 	int panel_power_on;
 	struct disp_info_type_suspend suspend;
 
@@ -192,12 +212,12 @@ struct msm_fb_data_type {
 	u32 ext_bl_ctrl;
 	u32 calib_mode;
 	u32 bl_level;
+	u32 bl_prev_level;
 	u32 bl_scale;
 	u32 bl_min_lvl;
 	u32 unset_bl_level;
 	u32 bl_updated;
 	u32 bl_level_scaled;
-	u32 bl_level_prev_scaled;
 	struct mutex bl_lock;
 
 	struct platform_device *pdev;
@@ -235,12 +255,7 @@ struct msm_fb_data_type {
 	struct ion_client *fb_ion_client;
 	struct ion_handle *fb_ion_handle;
 	u32 wait_for_kickoff;
-	u32 dpms;
-	u32 csc_range;
-	u32 dbg_cnt;
-#ifdef CONFIG_SLEEP_MONITOR
-	u32 act_cnt;
-#endif
+	bool mdss_fb_split_stored;
 };
 
 static inline void mdss_fb_update_notify_update(struct msm_fb_data_type *mfd)
@@ -262,6 +277,21 @@ static inline void mdss_fb_update_notify_update(struct msm_fb_data_type *mfd)
 	}
 }
 
+/* Function returns true for either Layer Mixer split or Ping pong split */
+static inline bool is_panel_split(struct msm_fb_data_type *mfd)
+{
+	return (mfd && (!(mfd->split_mode == MDP_SPLIT_MODE_NONE)));
+}
+/* Function returns true, if Layer Mixer split is Set*/
+static inline bool is_split_lm(struct msm_fb_data_type *mfd)
+{
+	return (mfd && (mfd->split_mode == MDP_SPLIT_MODE_LM));
+}
+/* Function returns true, if Ping pong split is Set*/
+static inline bool is_split_dst(struct msm_fb_data_type *mfd)
+{
+	return (mfd && (mfd->split_mode == MDP_SPLIT_MODE_DST));
+}
 int mdss_fb_get_phys_info(dma_addr_t *start, unsigned long *len, int fb_num);
 void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl);
 void mdss_fb_update_backlight(struct msm_fb_data_type *mfd);
@@ -281,5 +311,9 @@ struct msm_fb_data_type *msm_fb_get_data_type(int idx);
 #ifdef CONFIG_MSM_KGSL_DRM
 int mdss_fb_vsync_trigger(int idx, int en);
 bool mdss_fb_vsync_runtime_active(int idx);
+#endif
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+extern u8 csc_update;
+extern u8 csc_change;
 #endif
 #endif /* MDSS_FB_H */

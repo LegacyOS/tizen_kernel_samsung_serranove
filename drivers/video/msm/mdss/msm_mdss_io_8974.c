@@ -21,6 +21,9 @@
 
 #include "mdss_dsi.h"
 #include "mdss_edp.h"
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+#include "samsung/ss_dsi_panel_common.h"
+#endif
 
 #define SW_RESET BIT(2)
 #define SW_RESET_PLL BIT(0)
@@ -358,8 +361,19 @@ static void mdss_dsi_link_clk_unprepare(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 
 static int mdss_dsi_link_clk_set_rate(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 {
-	u32 esc_clk_rate = 19200000;
+	u32 esc_clk_rate;
 	int rc = 0;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)	
+	struct samsung_display_driver_data *vdd = NULL;
+	vdd = check_valid_ctrl(ctrl_pdata);
+
+	if(vdd->dtsi_data[ctrl_pdata->ndx].samsung_esc_clk_128M)
+		esc_clk_rate = 12800000;
+	else
+		esc_clk_rate = 19200000;
+#else
+	esc_clk_rate = 19200000;
+#endif
 
 	if (!ctrl_pdata) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -809,6 +823,7 @@ void mdss_dsi_phy_init(struct mdss_panel_data *pdata)
 	struct mdss_dsi_phy_ctrl *pd;
 	int i, off, ln, offset;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL, *temp_ctrl = NULL;
+	u32 ctrl_rev;
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
@@ -837,29 +852,48 @@ void mdss_dsi_phy_init(struct mdss_panel_data *pdata)
 		}
 	}
 
-	/* Regulator ctrl 0 */
-	MIPI_OUTP((temp_ctrl->phy_io.base) + 0x280, 0x0);
-	/* Regulator ctrl - CAL_PWR_CFG */
-	MIPI_OUTP((temp_ctrl->phy_io.base) + 0x298, pd->regulator[6]);
-
-	/* Regulator ctrl - TEST */
-	MIPI_OUTP((temp_ctrl->phy_io.base) + 0x294, pd->regulator[5]);
-	/* Regulator ctrl 3 */
-	MIPI_OUTP((temp_ctrl->phy_io.base) + 0x28c, pd->regulator[3]);
-	/* Regulator ctrl 2 */
-	MIPI_OUTP((temp_ctrl->phy_io.base) + 0x288, pd->regulator[2]);
-	/* Regulator ctrl 1 */
-	MIPI_OUTP((temp_ctrl->phy_io.base) + 0x284, pd->regulator[1]);
-	/* Regulator ctrl 0 */
-	MIPI_OUTP((temp_ctrl->phy_io.base) + 0x280, pd->regulator[0]);
-	/* Regulator ctrl 4 */
-	MIPI_OUTP((temp_ctrl->phy_io.base) + 0x290, pd->regulator[4]);
-
-	/* LDO ctrl */
-	if (pd->reg_ldo_mode)
-		MIPI_OUTP((ctrl_pdata->phy_io.base) + 0x1dc, 0x25);
-	else
+	if (pd->reg_ldo_mode) {
+		/* Regulator ctrl 0 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x280, 0x0);
+		/* Regulator ctrl - CAL_PWR_CFG */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x298, pd->regulator[6]);
+		/* Add H/w recommended delay */
+		udelay(1000);
+		/* Regulator ctrl - TEST */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x294, pd->regulator[5]);
+		/* Regulator ctrl 3 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x28c, pd->regulator[3]);
+		/* Regulator ctrl 2 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x288, pd->regulator[2]);
+		/* Regulator ctrl 1 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x284, pd->regulator[1]);
+		/* Regulator ctrl 4 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x290, pd->regulator[4]);
+		/* LDO ctrl */
+		if (MIPI_INP(ctrl_pdata->ctrl_base) == MDSS_DSI_HW_REV_103_1)
+			MIPI_OUTP((ctrl_pdata->phy_io.base) + 0x1dc, 0x05);
+		else
+			MIPI_OUTP((ctrl_pdata->phy_io.base) + 0x1dc, 0x0d);
+	} else {
+		/* Regulator ctrl 0 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x280, 0x0);
+		/* Regulator ctrl - CAL_PWR_CFG */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x298, pd->regulator[6]);
+		/* Add H/w recommended delay */
+		udelay(1000);
+		/* Regulator ctrl 1 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x284, pd->regulator[1]);
+		/* Regulator ctrl 2 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x288, pd->regulator[2]);
+		/* Regulator ctrl 3 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x28c, pd->regulator[3]);
+		/* Regulator ctrl 4 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x290, pd->regulator[4]);
+		/* LDO ctrl */
 		MIPI_OUTP((ctrl_pdata->phy_io.base) + 0x1dc, 0x00);
+		/* Regulator ctrl 0 */
+		MIPI_OUTP((temp_ctrl->phy_io.base) + 0x280, pd->regulator[0]);
+	}
 
 	off = 0x0140;	/* phy timing ctrl 0 - 11 */
 	for (i = 0; i < 12; i++) {
@@ -895,8 +929,11 @@ void mdss_dsi_phy_init(struct mdss_panel_data *pdata)
 	MIPI_OUTP((ctrl_pdata->phy_io.base) + 0x0170, 0x5f);
 	wmb();
 
+	ctrl_rev = MIPI_INP(ctrl_pdata->ctrl_base);
+
 	/* DSI_0_PHY_DSIPHY_GLBL_TEST_CTRL */
-	if ((ctrl_pdata->panel_data).panel_info.pdest == DISPLAY_1)
+	if (((ctrl_pdata->panel_data).panel_info.pdest == DISPLAY_1) ||
+			(ctrl_rev == MDSS_DSI_HW_REV_103_1))
 		MIPI_OUTP((ctrl_pdata->phy_io.base) + 0x01d4, 0x01);
 	else
 		MIPI_OUTP((ctrl_pdata->phy_io.base) + 0x01d4, 0x00);

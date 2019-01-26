@@ -31,6 +31,7 @@ void mdss_check_dsi_ctrl_status(struct work_struct *work, uint32_t interval)
 {
 	struct dsi_status_data *pstatus_data = NULL;
 	struct mdss_panel_data *pdata = NULL;
+	struct mipi_panel_info *mipi = NULL;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	struct mdss_overlay_private *mdp5_data = NULL;
 	struct mdss_mdp_ctl *ctl = NULL;
@@ -48,6 +49,7 @@ void mdss_check_dsi_ctrl_status(struct work_struct *work, uint32_t interval)
 		pr_err("%s: Panel data not available\n", __func__);
 		return;
 	}
+	mipi = &pdata->panel_info.mipi;
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 							panel_data);
@@ -72,15 +74,20 @@ void mdss_check_dsi_ctrl_status(struct work_struct *work, uint32_t interval)
 		return;
 	}
 
-	if (ctl->shared_lock)
-		mutex_lock(ctl->shared_lock);
-	mutex_lock(&mdp5_data->ov_lock);
+	/*
+	 * TODO: Because mdss_dsi_cmd_mdp_busy has made sure DMA to
+	 * be idle in mdss_dsi_cmdlist_commit, it is not necessary
+	 * to acquire ov_lock in case of video mode. Removing this
+	 * lock to fix issues so that ESD thread could block other
+	 * overlay operations. Need refine this lock for command mode
+	 */
+	if (mipi->mode == DSI_CMD_MODE)
+		mutex_lock(&mdp5_data->ov_lock);
 
 	if (pstatus_data->mfd->shutdown_pending ||
 		!pstatus_data->mfd->panel_power_on) {
-		mutex_unlock(&mdp5_data->ov_lock);
-		if (ctl->shared_lock)
-			mutex_unlock(ctl->shared_lock);
+		if (mipi->mode == DSI_CMD_MODE)
+			mutex_unlock(&mdp5_data->ov_lock);
 		pr_err("%s: DSI turning off, avoiding panel status check\n",
 							__func__);
 		return;
@@ -105,22 +112,29 @@ void mdss_check_dsi_ctrl_status(struct work_struct *work, uint32_t interval)
 	ret = ctrl_pdata->check_status(ctrl_pdata);
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
 
-	mutex_unlock(&mdp5_data->ov_lock);
-	if (ctl->shared_lock)
-		mutex_unlock(ctl->shared_lock);
+	if (mipi->mode == DSI_CMD_MODE)
+		mutex_unlock(&mdp5_data->ov_lock);
 
 	if ((pstatus_data->mfd->panel_power_on)) {
 		if (ret > 0) {
-			schedule_delayed_work(&pstatus_data->check_status,
-				msecs_to_jiffies(interval));
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+			if (ctrl_pdata->status_mode != ESD_REG_IRQ)
+#endif
+				schedule_delayed_work(
+						&pstatus_data->check_status,
+						msecs_to_jiffies(interval));
 		} else {
 			char *envp[2] = {"PANEL_ALIVE=0", NULL};
 			pdata->panel_info.panel_dead = true;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+			if (ctrl_pdata->status_mode == ESD_REG_IRQ)
+				msleep(interval);
+#endif
 			ret = kobject_uevent_env(
 				&pstatus_data->mfd->fbi->dev->kobj,
 							KOBJ_CHANGE, envp);
-			pr_err("%s: Panel has gone bad, sending uevent - %s\n",
-							__func__, envp[0]);
+			pr_err("%s: Panel has gone bad, sending uevent - %s, ret=%d\n",
+							__func__, envp[0], ret);
 		}
 	}
 }

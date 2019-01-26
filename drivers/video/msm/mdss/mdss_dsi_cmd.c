@@ -608,6 +608,9 @@ void mdss_dsi_set_tear_on(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	struct dcs_cmd_req cmdreq;
 
+	/*TODO: remove return if the DMA tx timeout fixed*/
+	return;
+
 	cmdreq.cmds = &dsi_tear_on_cmd;
 	cmdreq.cmds_cnt = 1;
 	cmdreq.flags = CMD_REQ_COMMIT;
@@ -620,6 +623,9 @@ void mdss_dsi_set_tear_on(struct mdss_dsi_ctrl_pdata *ctrl)
 void mdss_dsi_set_tear_off(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	struct dcs_cmd_req cmdreq;
+
+	/*TODO: remove return if the DMA tx timeout fixed*/
+	return;
 
 	cmdreq.cmds = &dsi_tear_off_cmd;
 	cmdreq.cmds_cnt = 1;

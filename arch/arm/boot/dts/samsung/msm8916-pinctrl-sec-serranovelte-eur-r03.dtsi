@@ -1524,5 +1524,38 @@
 				bias-disable;         /* No PULL */
 			};
 		};
+		nc_group {
+			qcom,pins = <&gp 117>, <&gp 118>, <&gp 119>;
+			qcom,num-grp-pins = <3>;
+			qcom,pin-func = <0>;
+			label = "nc_gpios";
+
+			nc_default: default {
+				drive-strength = <2>;
+				bias-pull-down;
+			};
+
+			nc_sleep: sleep {
+				drive-strength = <2>;
+				bias-pull-down;
+			};
+		};
+
+		hw_rev {
+			qcom,pins = <&gp 72>, <&gp 77>, <&gp 78>, <&gp 79>, <&gp 116>;
+			qcom,num-grp-pins = <5>;
+			qcom,pin-func = <0>;
+			label = "hw_check";
+
+			hw_default: default {
+				drive-strength = <2>;
+				bias-disable;
+			};
+
+			hw_sleep: sleep {
+				drive-strength = <2>;
+				bias-disable;
+			};
+		};
 	};
 };

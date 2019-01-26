@@ -19,10 +19,14 @@ build_kernel()
 
 	make ${makeflags}  msm8916_defconfig VARIANT_DEFCONFIG=tizen_serranovelte_defconfig
 
-	make ${makeflags} -j4 zImage modules dtbs
+	make ${makeflags} -j4
+
+	mv output/arch/arm/boot/zImage output/arch/arm/boot/boot.img-kernel
+
+	./dtbtool -o output/arch/arm/boot/boot.img-dt -s 2048 -p output/scripts/dtc/ output/arch/arm/boot/dts/
 
 }
 
 build_kernel
 
-#./dtbtool -o merged-dtb -p "scripts/dtc/" -v "arch/arm/boot/dts/"
+#

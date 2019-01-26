@@ -19,7 +19,7 @@
  */
 &mdss_mdp {
 	dsi_s6e8aa5x01_hd_video: qcom,mdss_dsi_s6e8aa5x01_hd_video {
-		qcom,mdss-dsi-panel-name = "S6E8AA5X01 HD video mode dsi panel";
+		qcom,mdss-dsi-panel-name = "ss_dsi_panel_S6E88A0_AMS427AP24_QHD";
 		qcom,mdss-dsi-panel-controller = <&mdss_dsi0>;
 		qcom,mdss-dsi-panel-type = "dsi_video_mode";
 		qcom,mdss-dsi-panel-destination = "display_1";
@@ -27,8 +27,8 @@
 		qcom,mdss-dsi-panel-framerate = <60>;
 		qcom,mdss-dsi-virtual-channel-id = <0>;
 		qcom,mdss-dsi-stream = <0>;
-		qcom,mdss-dsi-panel-width = <720>;
-		qcom,mdss-dsi-panel-height = <1280>;
+		qcom,mdss-dsi-panel-width = <540>;
+		qcom,mdss-dsi-panel-height = <960>;
 		qcom,mdss-pan-physical-width-dimension = <62>; /* <Width> real size of panel in mm */
 		qcom,mdss-pan-physical-height-dimension = <110>; /*<Height> real size of panel in mm */
 		qcom,mdss-dsi-lp11-init;
@@ -64,56 +64,71 @@
 		qcom,mdss-dsi-reset-sequence = <1 5>, <0 1>, <1 10>;
 		qcom,mdss-dsi-h-sync-pulse = <0>;
 		qcom,mdss-dsi-hfp-power-mode;
-		qcom,mdss-dsi-panel-timings = [8B 1E 14 00 44 48 18 22 19 03 04 00];
-		qcom,mdss-dsi-t-clk-pre = <0x1C>;
+		qcom,mdss-dsi-panel-timings = [87 1C 12 00 42 44 18 20 17 03 04 00];
 		qcom,mdss-dsi-t-clk-post = <0x04>;
+		qcom,mdss-dsi-t-clk-pre = <0x27>;
 		qcom,mdss-dsi-pixel-packing = "loose";
 		qcom,mdss-dsi-lane-map = "lane_map_0123";
 		qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
 		qcom,mdss-dsi-off-command-state = "dsi_hs_mode";
 		qcom,mdss-dsi-rx-eot-ignore;
 		qcom,mdss-dsi-tx-eot-append;
-		qcom,mdss-dsi-on-command = [
-			39 00 00 00 00 00 03 F0 5A 5A /* Tesk key ON */
-			39 01 00 00 00 00 02 CC 4C /* PCD Polarity Setting */
-			05 01 00 00 78 00 02 11 00 /* Sleep out  wait 120ms */
+				qcom,mdss-dsi-on-command = [
+			39 00 00 00 00 00 03 F0 5a 5a /* Tesk key ON */
+			39 00 00 00 00 00 03 FC 5a 5a /* Tesk key ON */
+			/* 5. SRC_LATCH Set*/
+			39 00 00 00 00 00 02 B0 11
+			39 00 00 00 00 00 02 FD 11
+			39 00 00 00 00 00 02 B0 13
+			39 00 00 00 00 00 02 FD 18
+			/* 7. AVDD Set*/
+			39 00 00 00 00 00 02 B0 02
+			39 00 00 00 00 00 02 B8 30
+			/* Sleep out  wait 20ms */
+			05 01 00 00 14 00 02 11 00
 
-			39 00 00 00 00 00 22 /* 360nit 2.2 Gamma */
-			CA 01 00 01 00 01 00 /* V255 R,G,B*/
-			80 80 80 /* V203 R,G,B*/
-			80 80 80 /* V151 R,G,B*/
-			80 80 80 /* V87 R,G,B*/
-			80 80 80 /* V51 R,G,B*/
-			80 80 80 /* V35 R,G,B*/
-			80 80 80 /* V23 R,G,B*/
-			80 80 80 /* V11 R,G,B*/
-			80 80 80 /* V3 R,G,B*/
-			00 00 00 /* VT R,G,B*/
+			/* PCD */
+			39 00 00 00 00 00 02 CC 4C
 
-			39 00 00 00 00 00 05 B2 00 0F 00 0F /* AID setting *//* AOR 0% */
-			39 00 00 00 00 00 03 B6 BC 0F /* ELVSS */
+			/* 1. Brightness condition set */
+			39 00 00 00 00 00 22 /* Brightness gamma */
+				ca 01 00 01 00 01 00 80
+				80 80 80 80 80 80 80 80
+				80 80 80 80 80 80 80 80
+				80 80 80 80 80 80 80 00
+				00 00
 
-			39 00 00 00 00 00 02 F7 03 /* gamma upate */
-			39 00 00 00 00 00 02 F7 00 /* gamma upate */
+			39 00 00 00 00 00 06 B2 40 08 20 00 08 /* AID set */
+			/* 2. ELVSS Condition set */
+			39 00 00 00 00 00 03 B6 28 0B /* ELVSS */
+			39 00 00 00 00 00 02 F7 03 /* Gamma/AID update */
 
-			39 00 00 00 00 00 04 C0 D8 D8 40 /* pentile setting */
-			39 00 00 00 78 00 08 B8 38 00 00 60 44 00 A8 /* swire setting , wait 120ms according to spec*/
 
-			39 01 00 00 00 00 03 F0 A5 A5 /* Tesk key OFF */
+
+			/* 3. ETC Condition set */
+			39 00 00 00 00 00 02 55 00 /* ACL set */
+			39 00 00 00 00 00 02 B0 03
+			39 00 00 00 00 00 02 F4 02 /* AVC On */
+			39 00 00 00 00 00 03 F2 04 0C
+			39 00 00 00 00 00 03 F0 A5 A5
+			39 00 00 00 20 00 03 FC A5 A5
 			05 01 00 00 00 00 02 29 00 /* Display on */
 		];
 
-		qcom,mdss-dsi-off-command = [
-			05 01 00 00 23 00 02 28 00
-			05 01 00 00 78 00 02 10 00
-		];
+		qcom,mdss-dsi-off-command = [05 01 00 00 00 00 02 28 00
+				 05 01 00 00 78 00 02 10 00];
+
 		samsung,test_key_enable_tx_cmds = [
-			29 01 00 00 00 00 03 F0 5A 5A
+			39 00 00 00 00 00 03 F0 5A 5A
+			39 01 00 00 00 00 03 fc 5a 5a
 		];
 		samsung,test_key_disable_tx_cmds = [
-			29 01 00 00 00 00 03 F0 A5 A5
+			39 00 00 00 00 00 03 F0 A5 A5
+			39 01 00 00 00 00 03 fc A5 A5
 		];
-		samsung,chip_id_rx_cmds = [06 01 00 00 00 00 01 D5];
+		samsung,chip_id_rx_cmds = [ 06 01 00 00 00 00 01 da 01 00
+					    06 01 00 00 00 00 01 db 01 00
+					    06 01 00 00 00 00 01 dc 01 00 ];
 		samsung,gamma_tx_cmds = [
 			39 01 00 00 00 00 22  /* Brightness Condition Set - Gamma 2.2 Setting*/
 			CA 01 00 01 00 01 00
@@ -123,105 +138,74 @@
 			80 80 80 00 00 00
 			39 01 00 00 00 00 02 F7 03  /* gamma upate */
 		];
-		samsung,g_param_tx_cmds = [ 15 01 00 00 00 00 02 B0 00];
+		samsung,g_param_tx_cmds = [ 15 01 00 00 00 00 02 B0 00 ];
 		samsung,hbm_rx_cmds = [ 06 01 00 00 00 00 01 C8];
+
 		samsung,hbm_gamma_tx_cmds = [
-			39 01 00 00 00 00 23            /* Brightness Condition Set - Gamma 2.2 Setting*/
-			B4 0B
-			FF FF FF
-			FF FF FF
-			FF FF FF
-			FF FF FF
-			FF FF FF
-			FF FF FF
-			FF FF FF
-			80 80 80
-			80 80 80
-			80 80 80
-			00 00 00
-		];
+			39 00 00 00 00 00 22
+				CA 01 00 01 00 01 00 80
+				80 80 80 80 80 80 80 80
+				80 80 80 80 80 80 80 80
+				80 80 80 80 80 80 80 00
+				00 00 ];
+
 		samsung,hbm_tx_cmds = [
-			39 01 00 00 00 00 03 B6 BC 0F	/* MPS/ELVSS Setting */
-			39 01 00 00 00 00 02 B5 50		/* OPR Average Calculation */
-			39 01 00 00 00 00 02 53 C0		/* HBM Control */
-			39 01 00 00 00 00 02 55 02		/* 0x02 : ACL 15% on */
-			39 01 00 00 01 00 02 F7 03		/* gamma upate */
-			39 01 00 00 00 00 02 F7 00		/* gamma upate */
+			39 00 00 00 00 00 02 B0 10
+			39 00 00 00 00 00 02 B6 00
+			39 00 00 00 00 00 02 F7 03	/* Gamma, LTPS(AID) update */
+			39 00 00 00 00 00 02 55 02	/* power saving Set */
 		];
 		samsung,hbm_off_cmds = [
-			39 01 00 00 00 00 02 53 00
+			39 00 00 00 00 00 02 B0 10
+			39 00 00 00 00 00 02 B6 00
+			39 01 00 00 00 00 02 F7 03	
 		];
 		samsung,aid_tx_cmds = [
-			39 01 00 00 00 00 03 B2 04 EE   /* 00 samsung_brightness aor 96.78% */
-			39 01 00 00 00 00 03 B2 04 E1   /* 01 samsung_brightness aor 95.78% */
-			39 01 00 00 00 00 03 B2 04 D4   /* 02 samsung_brightness aor 94.79% */
-			39 01 00 00 00 00 03 B2 04 CF   /* 03 samsung_brightness aor 94.40% */
-			39 01 00 00 00 00 03 B2 04 C2   /* 04 samsung_brightness aor 93.40% */
-			39 01 00 00 00 00 03 B2 04 B4   /* 05 samsung_brightness aor 92.33% */
-			39 01 00 00 00 00 03 B2 04 AF   /* 06 samsung_brightness aor 91.95% */
-			39 01 00 00 00 00 03 B2 04 A3   /* 07 samsung_brightness aor 91.03% */
-			39 01 00 00 00 00 03 B2 04 96   /* 08 samsung_brightness aor 90.03% */
-			39 01 00 00 00 00 03 B2 04 91   /* 09 samsung_brightness aor 89.65% */
-			39 01 00 00 00 00 03 B2 04 82   /* 10 samsung_brightness aor 88.05% */
-			39 01 00 00 00 00 03 B2 04 75   /* 11 samsung_brightness aor 87.50% */
-			39 01 00 00 00 00 03 B2 04 70   /* 12 samsung_brightness aor 87.12% */
-			39 01 00 00 00 00 03 B2 04 54   /* 13 samsung_brightness aor 84.97% */
-			39 01 00 00 00 00 03 B2 04 50   /* 14 samsung_brightness aor 84.66% */
-			39 01 00 00 00 00 03 B2 04 42   /* 15 samsung_brightness aor 83.59% */
-			39 01 00 00 00 00 03 B2 04 33   /* 16 samsung_brightness aor 82.44% */
-			39 01 00 00 00 00 03 B2 04 1E   /* 17 samsung_brightness aor 80.83% */
-			39 01 00 00 00 00 03 B2 04 10   /* 18 samsung_brightness aor 79.75% */
-			39 01 00 00 00 00 03 B2 03 F2   /* 19 samsung_brightness aor 77.45% */
-			39 01 00 00 00 00 03 B2 03 DE   /* 20 samsung_brightness aor 75.92% */
-			39 01 00 00 00 00 03 B2 03 C6   /* 21 samsung_brightness aor 74.08% */
-			39 01 00 00 00 00 03 B2 03 B1   /* 22 samsung_brightness aor 72.47% */
-			39 01 00 00 00 00 03 B2 03 95   /* 23 samsung_brightness aor 70.32% */
-			39 01 00 00 00 00 03 B2 03 73   /* 24 samsung_brightness aor 67.71% */
-			39 01 00 00 00 00 03 B2 03 5F   /* 25 samsung_brightness aor 66.18% */
-			39 01 00 00 00 00 03 B2 03 43   /* 26 samsung_brightness aor 64.03% */
-			39 01 00 00 00 00 03 B2 03 20   /* 27 samsung_brightness aor 61.35% */
-			39 01 00 00 00 00 03 B2 02 FE   /* 28 samsung_brightness aor 58.74% */
-			39 01 00 00 00 00 03 B2 02 DF   /* 29 samsung_brightness aor 56.37% */
-			39 01 00 00 00 00 03 B2 02 B2   /* 30 samsung_brightness aor 52.91% */
-			39 01 00 00 00 00 03 B2 02 90   /* 31 samsung_brightness aor 50.31% */
-			39 01 00 00 00 00 03 B2 02 5E   /* 32 samsung_brightness aor 46.47% */
-			39 01 00 00 00 00 03 B2 02 30   /* 33 samsung_brightness aor 42.94% */
-			39 01 00 00 00 00 03 B2 01 F4   /* 34 samsung_brightness aor 38.34% */
-			39 01 00 00 00 00 03 B2 01 F4   /* 35 samsung_brightness aor 38.34% */
-			39 01 00 00 00 00 03 B2 01 F4   /* 36 samsung_brightness aor 38.34% */
-			39 01 00 00 00 00 03 B2 01 F4   /* 37 samsung_brightness aor 38.34% */
-			39 01 00 00 00 00 03 B2 01 F4   /* 38 samsung_brightness aor 38.34% */
-			39 01 00 00 00 00 03 B2 01 F4   /* 39 samsung_brightness aor 38.34% */
-			39 01 00 00 00 00 03 B2 01 F4   /* 40 samsung_brightness aor 38.34% */
-			39 01 00 00 00 00 03 B2 01 F4   /* 41 samsung_brightness aor 38.34% */
-			39 01 00 00 00 00 03 B2 01 F4   /* 42 samsung_brightness aor 38.34% */
-			39 01 00 00 00 00 03 B2 01 F4   /* 43 samsung_brightness aor 38.34% */
-			39 01 00 00 00 00 03 B2 01 BF   /* 44 samsung_brightness aor 34.28% */
-			39 01 00 00 00 00 03 B2 01 82   /* 45 samsung_brightness aor 29.60% */
-			39 01 00 00 00 00 03 B2 01 40   /* 46 samsung_brightness aor 24.54% */
-			39 01 00 00 00 00 03 B2 01 00   /* 47 samsung_brightness aor 19.63% */
-			39 01 00 00 00 00 03 B2 00 B2   /* 48 samsung_brightness aor 13.65% */
-			39 01 00 00 00 00 03 B2 00 62   /* 49 samsung_brightness aor  7.52% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 50 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 51 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 52 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 53 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 54 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 55 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 56 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 57 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 58 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 59 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 60 samsung_brightness aor  1.15% */
-			39 01 00 00 00 00 03 B2 00 0F   /* 61 samsung_brightness aor  1.15% */
+			39 00 00 00 00 00 06 B2 40 08 20 03 77	/* 00 AOR 90.9% */
+			39 00 00 00 00 00 06 B2 40 08 20 03 73	/* 01 AOR 90.5% */
+			39 00 00 00 00 00 06 B2 40 08 20 03 69	/* 02 AOR 89.4% 181*/
+			39 00 00 00 00 00 06 B2 40 08 20 03 65	/* 03 AOR 89.0% 179*/
+			39 00 00 00 00 00 06 B2 40 08 20 03 61	/* 04 AOR 88.6% 177*/
+			39 00 00 00 00 00 06 B2 40 08 20 03 55	/* 05 AOR 87.4% 175*/
+			39 00 00 00 00 00 06 B2 40 08 20 03 50	/* 06 AOR 86.9% 173*/
+			39 00 00 00 00 00 06 B2 40 08 20 03 45	/* 07 AOR 85.8% 110*/
+			39 00 00 00 00 00 06 B2 40 08 20 03 35	/* 08 AOR 84.1% 109*/
+			39 00 00 00 00 00 06 B2 40 08 20 03 27	/* 09 AOR 82.7% 108*/
+			39 00 00 00 00 00 06 B2 40 08 20 03 23	/* 10 AOR 82.3% */
+			39 00 00 00 00 00 06 B2 40 08 20 03 17	/* 11 AOR 81.0% 108*/
+			39 00 00 00 00 00 06 B2 40 08 20 03 11	/* 12 AOR 80.4% */
+			39 00 00 00 00 00 06 B2 40 08 20 03 04	/* 13 AOR 79.1% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 F4	/* 14 AOR 77.5% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 E3	/* 15 AOR 75.7% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 D7	/* 16 AOR 74.5% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 C6	/* 17 AOR 72.7% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 B7	/* 18 AOR 71.2% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 A1	/* 19 AOR 69.0% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 91	/* 20 AOR 67.3% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 78	/* 21 AOR 64.8% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 62	/* 22 AOR 62.5% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 45	/* 23 AOR 59.5% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 30	/* 24 AOR 57.4% */
+			39 00 00 00 00 00 06 B2 40 08 20 02 13	/* 25 AOR 54.4% */
+			39 00 00 00 00 00 06 B2 40 08 20 01 F5	/* 26 AOR 51.3% */
+			39 00 00 00 00 00 06 B2 40 08 20 01 D3	/* 27 AOR 47.8% */
+			39 00 00 00 00 00 06 B2 40 08 20 01 B1	/* 28 AOR 44.4% */
+			39 00 00 00 00 00 06 B2 40 08 20 01 87	/* 29 AOR 40.1% */
+			39 00 00 00 00 00 06 B2 40 08 20 01 63	/* 30 AOR 36.6% */
+			39 00 00 00 00 00 06 B2 40 08 20 01 35	/* 31 AOR 31.7% */
+			39 00 00 00 00 00 06 B2 40 08 20 01 05	/* 32 AOR 26.9% */
+			39 00 00 00 00 00 06 B2 40 08 20 00 D5	/* 33 AOR 21.8% */
+			39 00 00 00 00 00 06 B2 40 08 20 00 A1	/* 34 AOR 16.5% */
+			39 00 00 00 00 00 06 B2 40 08 20 00 6F	/* 35 AOR 11.4% */
+			39 00 00 00 00 00 06 B2 40 08 20 00 31	/* 36 AOR 5.0% */
+			39 00 00 00 00 00 06 B2 40 08 20 01 86	/* 37 AOR 40% */
+			39 00 00 00 00 00 06 B2 40 08 20 00 08	/* 38 AOR 0.6% */
 		];
 		samsung,acl_on_tx_cmds = [
-			39 01 00 00 00 00 02 55 02
-			39 01 00 00 00 00 02 B5 50
+			39 01 00 00 00 00 02 55 02 
 		];
 		samsung,acl_off_tx_cmds = [
-			39 01 00 00 00 00 02 55 00
-			39 01 00 00 00 00 02 B5 40
+			39 01 00 00 72 00 02 55 00 
 		];
 		samsung,elvss_rx_cmds = [ 06 01 00 00 00 00 01 B6];
 		samsung,elvss_temp_tx_cmds = [
@@ -231,70 +215,26 @@
 			29 01 00 00 00 00 02 B6 00
 		];
 		samsung,elvss_tx_cmds = [
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 0F
-			39 01 00 00 00 00 03 B6 AC 11
-			39 01 00 00 00 00 03 B6 AC 14
-			39 01 00 00 00 00 03 B6 AC 17
-			39 01 00 00 00 00 03 B6 AC 19
-			39 01 00 00 00 00 03 B6 AC 1B
-			39 01 00 00 00 00 03 B6 AC 1D
-			39 01 00 00 00 00 03 B6 AC 1F
-			39 01 00 00 00 00 03 B6 AC 1F
-			39 01 00 00 00 00 03 B6 AC 1F
-			39 01 00 00 00 00 03 B6 AC 1F
-			39 01 00 00 00 00 03 B6 AC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1F
-			39 01 00 00 00 00 03 B6 BC 1E
-			39 01 00 00 00 00 03 B6 BC 1E
-			39 01 00 00 00 00 03 B6 BC 1E
-			39 01 00 00 00 00 03 B6 BC 1E
-			39 01 00 00 00 00 03 B6 BC 1D
-			39 01 00 00 00 00 03 B6 BC 1D
-			39 01 00 00 00 00 03 B6 BC 1D
-			39 01 00 00 00 00 03 B6 BC 1D
-			39 01 00 00 00 00 03 B6 BC 1C
-			39 01 00 00 00 00 03 B6 BC 1B
-			39 01 00 00 00 00 03 B6 BC 1A
-			39 01 00 00 00 00 03 B6 BC 18
-			39 01 00 00 00 00 03 B6 BC 18
-			39 01 00 00 00 00 03 B6 BC 17
-			39 01 00 00 00 00 03 B6 BC 16
-			39 01 00 00 00 00 03 B6 BC 14
-			39 01 00 00 00 00 03 B6 BC 13
-			39 01 00 00 00 00 03 B6 BC 12
-			39 01 00 00 00 00 03 B6 BC 10
-			39 01 00 00 00 00 03 B6 BC 0F
+			39 00 00 00 00 00 03 B6 28 14		/* 0 105cd/m2 ~ 10cd/m2 */
+			39 00 00 00 00 00 03 B6 28 14		/* 1 111cd/m2 */
+			39 00 00 00 00 00 03 B6 28 13		/* 2 119cd/m2 */
+			39 00 00 00 00 00 03 B6 28 12		/* 3 126cd/m2 */
+			39 00 00 00 00 00 03 B6 28 12		/* 4 134cd/m2 */
+			39 00 00 00 00 00 03 B6 28 11		/* 5 143cd/m2 */
+			39 00 00 00 00 00 03 B6 28 10		/* 6 152cd/m2 */
+			39 00 00 00 00 00 03 B6 28 0F		/* 7 162cd/m2 */
+			39 00 00 00 00 00 03 B6 28 0E		/* 8 172cd/m2 */
+			39 00 00 00 00 00 03 B6 28 11		/* 9 183cd/m2 */
+			39 00 00 00 00 00 03 B6 28 11		/* 10 195cd/m2 */
+			39 00 00 00 00 00 03 B6 28 10		/* 11 207cd/m2 */
+			39 00 00 00 00 00 03 B6 28 0F		/* 12 220cd/m2 */
+			39 00 00 00 00 00 03 B6 28 0F		/* 13 234cd/m2 */
+			39 00 00 00 00 00 03 B6 28 0E		/* 14 249cd/m2 */
+			39 00 00 00 00 00 03 B6 28 0D		/* 15 265cd/m2 */
+			39 00 00 00 00 00 03 B6 28 0C		/* 16 282cd/m2 */
+			39 00 00 00 00 00 03 B6 28 0B		/* 17 300cd/m2 */
 		];
-		samsung,mtp_rx_cmds = [ 06 01 00 00 00 00 01 C8];
-		samsung,mdnie_rx_cmds = [ 06 01 00 00 00 00 01 D7];
+		samsung,mtp_rx_cmds =   [ 06 01 00 00 00 00 01 01];
+		samsung,mdnie_rx_cmds = [ 06 01 00 00 00 00 01 B5];
 	};
 };

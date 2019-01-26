@@ -19,7 +19,7 @@
  */
 &mdss_mdp {
 	dsi_hx8389c_tft_qhd_video: qcom,mdss_dsi_hx8389c_qhd_video {
-		qcom,mdss-dsi-panel-name = "HX8389C qhd video mode dsi panel";
+		qcom,mdss-dsi-panel-name = "ss_dsi_panel_S6E88A0_AMS427AP24_QHD";
 		qcom,mdss-dsi-panel-controller = <&mdss_dsi0>;
 		qcom,mdss-dsi-panel-type = "dsi_video_mode";
 		qcom,mdss-dsi-panel-destination = "display_1";
