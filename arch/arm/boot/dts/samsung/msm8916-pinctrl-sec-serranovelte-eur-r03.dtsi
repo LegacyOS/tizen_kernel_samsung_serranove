@@ -262,7 +262,7 @@
 			};
 		};
 
-           tkey_i2c_gpio_active {
+		tkey_i2c_gpio_active {
                         qcom,pins = <&gp 17>, <&gp 16>,<&gp 98>,<&gp 86>;
                         qcom,num-grp-pins = <4>;
                         qcom,pin-func = <0>;
@@ -270,6 +270,22 @@
                         tkey_i2c_active: tkey_i2c_active {
                                 drive-strength = <2>;
                                 bias-disable = <0>; /* No PULL */
+                        };
+                        tkey_i2c_suspend: tkey_i2c_suspend {
+                                drive-strength = <2>;
+                                bias-disable = <0>; /* No PULL */
+                                output-low;
+                        };
+		};
+ 		tkey_irq_gpio_active {
+                        qcom,pins = <&gp 98>;
+                        qcom,num-grp-pins = <1>;
+                        qcom,pin-func = <0>;
+                        label = "tkey_irq_gpio_active";
+                        tkey_irq_active: tkey_irq_active {
+                                drive-strength = <2>;
+                                bias-disable = <0>; /* No PULL */
+				    input-enable;
                         };
                 };
        
@@ -1205,6 +1221,19 @@
 			gpio_key_suspend: gpio_key_suspend {
 				drive-strength = <2>;
 				bias-pull-up;
+			};
+		};
+
+		/* HOme Key pingroup*/
+		pmx_home_key_pin {
+			qcom,pins = <&gp 109>;
+			qcom,pin-func = <0>;
+			qcom,num-grp-pins = <1>;
+			label = "pmx_home_key_pin";
+
+			home_key_pin: default {
+				drive-strength = <2>;
+				bias-disable;
 			};
 		};
 

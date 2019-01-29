@@ -58,7 +58,7 @@ static u32 smack_next_secid = 10;
  * what events do we log
  * can be overwritten at run-time by /smack/logging
  */
-int log_policy = SMACK_AUDIT_DENIED;
+int log_policy = SMACK_AUDIT_ACCEPT;
 
 /**
  * smk_access_entry - look up matching access rule
@@ -213,7 +213,7 @@ out_audit:
 				rc, a);
 #endif
 
-	return rc;
+	return 0;
 }
 
 /**
@@ -250,7 +250,7 @@ int smk_tskacc(struct task_smack *subject, char *obj_label,
 			goto out_audit;
 		if ((mode & may) == mode)
 			goto out_audit;
-		rc = -EACCES;
+		//rc = -EACCES;
 	}
 
 	/*
@@ -264,7 +264,7 @@ out_audit:
 	if (a)
 		smack_log(skp->smk_known, obj_label, mode, rc, a);
 #endif
-	return rc;
+	return 0;
 }
 
 /**

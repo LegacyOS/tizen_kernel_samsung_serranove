@@ -138,6 +138,7 @@ fw-shipped-$(CONFIG_YAM) += yam/1200.bin yam/9600.bin
 
 fw-shipped-$(CONFIG_KEYBOARD_TC360_TOUCHKEY) += coreriver/tc360_j5.fw
 fw-shipped-$(CONFIG_KEYBOARD_TC360_TOUCHKEY) += coreriver/tc360_j5_dtv.fw
+fw-shipped-$(CONFIG_KEYBOARD_TC360_TOUCHKEY)     += coreriver/tc360_serrano_eur.fw
 
 #for sensorhub
 fw-shipped-$(CONFIG_SEC_HIVE_PROJECT) += ssp_hive.fw
