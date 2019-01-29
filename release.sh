@@ -12,13 +12,8 @@ DZIMAGE="dzImage"
 MODEL=${1}
 REGION=${2}
 TIZEN_MODEL=tizen_${MODEL}
-output_path="./output"
 
-	if [ ! -d "$output_path" ]; then
-	   mkdir "$output_path"
-	fi
 
-makeflags+=" O=${output_path}"
 
 if [ "${REGION}" != "" ]; then
 	TIZEN_MODEL=${TIZEN_MODEL}_${REGION}
@@ -42,13 +37,13 @@ if [ "${MODEL}" = "" ]; then
 	exit
 fi
 
-make ${makeflags} ARCH=${ARM} ${TIZEN_MODEL}_defconfig
+make ARCH=${ARM} ${TIZEN_MODEL}_defconfig
 if [ "$?" != "0" ]; then
 	echo "Failed to make defconfig :"$ARCH
 	exit 1
 fi
 
-make ${makeflags} ${JOBS} ARCH=${ARM} ${IMAGE}
+make ${JOBS} ARCH=${ARM} ${IMAGE} modules
 if [ "$?" != "0" ]; then
 	echo "Failed to make "${IMAGE}
 	exit 1
@@ -58,19 +53,19 @@ DTC_PATH="scripts/dtc/"
 
 rm ${BOOT_PATH}/dts/*.dtb -f
 
-make ${makeflags} ARCH=${ARM} dtbs
+make ARCH=${ARM} dtbs
 if [ "$?" != "0" ]; then
 	echo "Failed to make dtbs"
 	exit 1
 fi
 
-./dtbtool -o ${BOOT_PATH}/merged-dtb -p ${DTC_PATH} -v ${BOOT_PATH}/dts/
+./dtbtool -o ${BOOT_PATH}/boot.img-dt -p ${DTC_PATH} -v ${BOOT_PATH}/dts/
 if [ "$?" != "0" ]; then
-	echo "Failed to make merged-dtb"
+	echo "Failed to make boot.img-dt"
 	exit 1
 fi
 
-mkdzimage -o ${BOOT_PATH}/${DZIMAGE} -k ${BOOT_PATH}/${IMAGE} -d ${BOOT_PATH}/merged-dtb
+mkdzimage -o ${BOOT_PATH}/${DZIMAGE} -k ${BOOT_PATH}/${IMAGE} -d ${BOOT_PATH}/boot.img-dt
 if [ "$?" != "0" ]; then
 	echo "Failed to make mkdzImage"
 	exit 1

@@ -3677,7 +3677,7 @@ int sdhci_add_host(struct sdhci_host *host)
 		}
 	}
 
-#ifdef CONFIG_SEC_M2M_PROJECT
+#if defined(CONFIG_SEC_M2M_PROJECT) || defined(CONFIG_SEC_SERRANOVE_PROJECT)
 	if (!strcmp(mmc_hostname(mmc), "mmc1") || (host->quirks2 & SDHCI_QUIRK2_NO_1_8_V))
 #else
 	if (host->quirks2 & SDHCI_QUIRK2_NO_1_8_V)

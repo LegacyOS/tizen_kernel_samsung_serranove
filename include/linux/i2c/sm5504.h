@@ -1,82 +1,41 @@
 /*
- * include/linux/i2c/SM5504.h
- *
- * Richtek SM5504 driver header file
- *
- * Copyright (C) 2013 Richtek Technology Corp.
- * Author: Patrick Chang <patrick_chang@richtek.com>
+ * Copyright (C) 2013 Samsung Electronics
+ * Nitin Chaudhary <nc.chaudhary@samsung.com>
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ *
  */
 
-#ifndef LINUX_MFD_SM5504_H
-#define LINUX_MFD_SM5504_H
-
-#define MUIC_DEV_NAME	"muic-sm5504"
-
-/* Marvell MMP arch*/
-#ifdef CONFIG_ARCH_MMP
-#define SAMSUNG_MVRL_MUIC_SM5504 1
-#endif
-
-#if !defined(CONFIG_USB_SPRD_SWITCH)
-extern struct device *switch_device;
-#endif
+#ifndef _SM5504_H_
+#define _SM5504_H_
+#include <linux/i2c/muic.h>
 
 enum {
-    MUIC_SM5504_CABLE_TYPE_NONE = 0,
-    MUIC_SM5504_CABLE_TYPE_UART,            //adc 0x16
-    MUIC_SM5504_CABLE_TYPE_USB,             //adc 0x1f (none id)
-    MUIC_SM5504_CABLE_TYPE_OTG,             //adc 0x00, regDev1&0x01
-    /* TA Group */
-    MUIC_SM5504_CABLE_TYPE_REGULAR_TA,      //adc 0x1f (none id, D+ short to D-)
-    MUIC_SM5504_CABLE_TYPE_ATT_TA,          //adc 0x1f (none id, only VBUS)AT&T
-    MUIC_SM5504_CABLE_TYPE_0x15,            //adc 0x15
-    MUIC_SM5504_CABLE_TYPE_TYPE1_CHARGER,   //adc 0x17 (id : 200k)
-    MUIC_SM5504_CABLE_TYPE_0x1A,            //adc 0x1A
-    /* JIG Group */
-    MUIC_SM5504_CABLE_TYPE_JIG_USB_OFF,     //adc 0x18
-    MUIC_SM5504_CABLE_TYPE_JIG_USB_ON,      //adc 0x19
-    MUIC_SM5504_CABLE_TYPE_JIG_UART_OFF,    //adc 0x1C
-    MUIC_SM5504_CABLE_TYPE_JIG_UART_ON,     //adc 0x1D
-    // JIG type with VBUS
-    MUIC_SM5504_CABLE_TYPE_JIG_UART_OFF_WITH_VBUS,    //adc 0x1C
-    MUIC_SM5504_CABLE_TYPE_JIG_UART_ON_WITH_VBUS,     //adc 0x1D
-
-    MUIC_SM5504_CABLE_TYPE_CDP, // USB Charging downstream port, usually treated as SDP
-    MUIC_SM5504_CABLE_TYPE_L_USB, // L-USB cable
-    MUIC_SM5504_CABLE_TYPE_UNKNOWN,
-    MUIC_SM5504_CABLE_TYPE_INVALID, // Un-initialized
+	SM5504_NONE = -1,
+	SM5504_DETACHED = 0,
+	SM5504_ATTACHED = 1
 };
-
-enum usb_cable_status {
-        USB_CABLE_DETACHED = 0,
-        USB_CABLE_ATTACHED,
-		USB_CABLE_CDP,
-};
-
-typedef enum {
-    JIG_USB_BOOT_OFF,
-    JIG_USB_BOOT_ON,
-    JIG_UART_BOOT_OFF,
-    JIG_UART_BOOT_ON,
-} jig_type_t;
 
 struct sm5504_platform_data {
-    int irq_gpio;
-    void (*init_callback)(void);
-    void (*dock_callback)(uint8_t attached);
-    void (*cable_chg_callback)(int32_t cable_type);
-    void (*ocp_callback)(void);
-    void (*otp_callback)(void);
-    void (*ovp_callback)(void);
-    void (*usb_callback)(uint8_t attached);
-    void (*uart_callback)(uint8_t attached);
-    void (*otg_callback)(uint8_t attached);
-    void (*jig_callback)(jig_type_t type, uint8_t attached);
+	void (*callback)(enum cable_type_t cable_type, int attached);
+#if defined(CONFIG_MUIC_SM5504_SUPPORT_LANHUB_TA)
+	void (*lanhub_cb)(enum cable_type_t cable_type, int attached, bool lanhub_ta);
+#endif
+	void (*oxp_callback)(int state);
+	void (*mhl_sel) (bool onoff);
+	int	(*dock_init) (void);
 	int gpio_int;
 	u32 irq_gpio_flags;
 	int gpio_sda;
@@ -85,8 +44,16 @@ struct sm5504_platform_data {
 	u32 scl_gpio_flags;
 	int gpio_uart_on;
 	u32 uarton_gpio_flags;
-
 };
 
-#endif // LINUX_MFD_SM5504_H
+/*SM5504 Callback functions in sec-switch.c*/
+extern int check_sm5504_jig_state(void);
+extern struct sm5504_platform_data sm5504_pdata;
+extern void sm5504_callback(enum cable_type_t cable_type, int attached);
+extern void sm5504_oxp_callback(int state);
+extern int sm5504_dock_init(void);
+#if defined(CONFIG_MUIC_SM5504_SUPPORT_LANHUB_TA)
+extern void sm5504_lanhub_callback(enum cable_type_t cable_type, int attached, bool lanhub_ta);
+#endif
+#endif /* _SM5504_H_ */
 

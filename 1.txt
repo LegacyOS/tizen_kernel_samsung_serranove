@@ -1,0 +1,99 @@
+warning: (SND_SOC_QDSP6V2) selects SND_SOC_MSM_QDSP6V2_INTF which has unmet direct dependencies (SOUND && !M68K && !UML && SND && SND_SOC && MSM_QDSP6_APRV2)
+warning: (SND_SOC_QDSP6V2) selects SND_SOC_MSM_QDSP6V2_INTF which has unmet direct dependencies (SOUND && !M68K && !UML && SND && SND_SOC && MSM_QDSP6_APRV2)
+KCONFIG_VARIANT((null))
+#
+# configuration written to .config
+#
+scripts/kconfig/conf --silentoldconfig Kconfig
+warning: (SND_SOC_QDSP6V2) selects SND_SOC_MSM_QDSP6V2_INTF which has unmet direct dependencies (SOUND && !M68K && !UML && SND && SND_SOC && MSM_QDSP6_APRV2)
+warning: (SND_SOC_QDSP6V2) selects SND_SOC_MSM_QDSP6V2_INTF which has unmet direct dependencies (SOUND && !M68K && !UML && SND && SND_SOC && MSM_QDSP6_APRV2)
+  CHK     include/generated/uapi/linux/version.h
+  CC      scripts/mod/devicetable-offsets.s
+fatal: Не удалось создать «/home/danil_e71/Tizen/sourcea/linux-3.10-msm8916/.git/index.lock»: Файл существует.
+
+Похоже, что другой процесс git запущен в этом репозитории,
+например редактор открыт из «git commit». Пожалуйста, убедитесь,
+что все процессы были завершены и потом попробуйте снова.
+Если это не поможет, то возможно процесс git был ранее завершен
+с ошибкой в этом репозитории: 
+удалите файл вручную для продолжения.
+  GEN     scripts/mod/devicetable-offsets.h
+  HOSTCC  scripts/mod/file2alias.o
+  CHK     include/generated/utsrelease.h
+make[1]: «include/generated/mach-types.h» не требует обновления.
+  CALL    scripts/checksyscalls.sh
+  HOSTLD  scripts/mod/modpost
+  CHK     include/generated/compile.h
+  Kernel: arch/arm/boot/Image is ready
+  LD      arch/arm/boot/compressed/vmlinux
+  OBJCOPY arch/arm/boot/zImage
+  Kernel: arch/arm/boot/zImage is ready
+  CC      scripts/mod/devicetable-offsets.s
+  GEN     scripts/mod/devicetable-offsets.h
+  HOSTCC  scripts/mod/file2alias.o
+  HOSTLD  scripts/mod/modpost
+  DTC     arch/arm/boot/dts/samsung/../msm8916-sec-serranovelte-eur-r00.dtb
+Warning (reg_format): "reg" property in /soc/i2c@22/qcom,actuator@18 has invalid length (8 bytes) (#address-cells == 2, #size-cells == 1)
+Warning (reg_format): "reg" property in /soc/i2c@21/qcom,eeprom@50 has invalid length (8 bytes) (#address-cells == 2, #size-cells == 1)
+Warning (avoid_default_addr_size): Relying on default #address-cells value for /soc/i2c@22/qcom,actuator@18
+Warning (avoid_default_addr_size): Relying on default #size-cells value for /soc/i2c@22/qcom,actuator@18
+Warning (avoid_default_addr_size): Relying on default #address-cells value for /soc/i2c@21/qcom,eeprom@50
+Warning (avoid_default_addr_size): Relying on default #size-cells value for /soc/i2c@21/qcom,eeprom@50
+  DTC     arch/arm/boot/dts/samsung/../msm8916-sec-serranovelte-eur-r01.dtb
+Warning (reg_format): "reg" property in /soc/i2c@22/qcom,actuator@18 has invalid length (8 bytes) (#address-cells == 2, #size-cells == 1)
+Warning (reg_format): "reg" property in /soc/i2c@21/qcom,eeprom@50 has invalid length (8 bytes) (#address-cells == 2, #size-cells == 1)
+Warning (avoid_default_addr_size): Relying on default #address-cells value for /soc/i2c@22/qcom,actuator@18
+Warning (avoid_default_addr_size): Relying on default #size-cells value for /soc/i2c@22/qcom,actuator@18
+Warning (avoid_default_addr_size): Relying on default #address-cells value for /soc/i2c@21/qcom,eeprom@50
+Warning (avoid_default_addr_size): Relying on default #size-cells value for /soc/i2c@21/qcom,eeprom@50
+  DTC     arch/arm/boot/dts/samsung/../msm8916-sec-serranovelte-eur-r02.dtb
+Warning (reg_format): "reg" property in /soc/i2c@22/qcom,actuator@18 has invalid length (8 bytes) (#address-cells == 2, #size-cells == 1)
+Warning (reg_format): "reg" property in /soc/i2c@21/qcom,eeprom@50 has invalid length (8 bytes) (#address-cells == 2, #size-cells == 1)
+Warning (avoid_default_addr_size): Relying on default #address-cells value for /soc/i2c@22/qcom,actuator@18
+Warning (avoid_default_addr_size): Relying on default #size-cells value for /soc/i2c@22/qcom,actuator@18
+Warning (avoid_default_addr_size): Relying on default #address-cells value for /soc/i2c@21/qcom,eeprom@50
+Warning (avoid_default_addr_size): Relying on default #size-cells value for /soc/i2c@21/qcom,eeprom@50
+  DTC     arch/arm/boot/dts/samsung/../msm8916-sec-serranovelte-eur-r03.dtb
+Warning (reg_format): "reg" property in /soc/i2c@22/qcom,actuator@18 has invalid length (8 bytes) (#address-cells == 2, #size-cells == 1)
+Warning (reg_format): "reg" property in /soc/i2c@21/qcom,eeprom@50 has invalid length (8 bytes) (#address-cells == 2, #size-cells == 1)
+Warning (avoid_default_addr_size): Relying on default #address-cells value for /soc/i2c@22/qcom,actuator@18
+Warning (avoid_default_addr_size): Relying on default #size-cells value for /soc/i2c@22/qcom,actuator@18
+Warning (avoid_default_addr_size): Relying on default #address-cells value for /soc/i2c@21/qcom,eeprom@50
+Warning (avoid_default_addr_size): Relying on default #size-cells value for /soc/i2c@21/qcom,eeprom@50
+DTB combiner:
+  Input directory: 'arch/arm/boot/dts/'
+  Output file: 'arch/arm/boot/boot.img-dt'
+Found file: msm8916-sec-serranovelte-eur-r03.dtb ... 
+Version:2
+chipset: 206, rev: 0, platform: 3456696065, subtype: 3, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 248, rev: 0, platform: 3456696065, subtype: 3, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 249, rev: 0, platform: 3456696065, subtype: 3, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 250, rev: 0, platform: 3456696065, subtype: 3, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+Found file: msm8916-sec-serranovelte-eur-r00.dtb ... 
+Version:2
+chipset: 206, rev: 0, platform: 3456696065, subtype: 0, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 248, rev: 0, platform: 3456696065, subtype: 0, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 249, rev: 0, platform: 3456696065, subtype: 0, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 250, rev: 0, platform: 3456696065, subtype: 0, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+Found file: msm8916-sec-serranovelte-eur-r02.dtb ... 
+Version:2
+chipset: 206, rev: 0, platform: 3456696065, subtype: 2, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 248, rev: 0, platform: 3456696065, subtype: 2, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 249, rev: 0, platform: 3456696065, subtype: 2, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 250, rev: 0, platform: 3456696065, subtype: 2, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+Found file: msm8916-sec-serranovelte-eur-r01.dtb ... 
+Version:2
+chipset: 206, rev: 0, platform: 3456696065, subtype: 1, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 248, rev: 0, platform: 3456696065, subtype: 1, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 249, rev: 0, platform: 3456696065, subtype: 1, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+additional chipset: 250, rev: 0, platform: 3456696065, subtype: 1, pmic0: 0, pmic1: 0, pmic2: 0, pmic3: 0
+=> Found 16 unique DTB(s)
+
+Generating master DTB... 
+ (writing 'arch/arm/boot/dts/msm8916-sec-serranovelte-eur-r00.dtb' - 163840 bytes) 
+ (writing 'arch/arm/boot/dts/msm8916-sec-serranovelte-eur-r01.dtb' - 163840 bytes) 
+ (writing 'arch/arm/boot/dts/msm8916-sec-serranovelte-eur-r02.dtb' - 163840 bytes) 
+ (writing 'arch/arm/boot/dts/msm8916-sec-serranovelte-eur-r03.dtb' - 165888 bytes) Total wrote 659456 bytes
+completed
+./release.sh: строка 68: mkdzimage: команда не найдена
+Failed to make mkdzImage

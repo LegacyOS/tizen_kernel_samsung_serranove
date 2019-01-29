@@ -29,30 +29,6 @@ config FB_MSM_MDSS_DSI_CTRL_STATUS
 	  fails to acknowledge the BTA command, it sends PANEL_ALIVE=0 status
 	  to HAL layer to reset the controller.
 
-config FB_MSM_MDSS_FAKE_RES
-	depends on FB_MSM_MDSS
-	bool "Support fake resolution"
-	default n
-	---help---
-	  Support fake resolution, it can be supported various resolution by
-	  sub xres, yres configuration.
-
-config FB_MSM_MDSS_FAKE_XRES
-	depends on FB_MSM_MDSS_FAKE_RES
-	int "Support fake xres"
-	default 1280
-	---help---
-	  Support fake xres information. but it only supports up to
-	  1280 x 1920 resolution for video panel.
-
-config FB_MSM_MDSS_FAKE_YRES
-	depends on FB_MSM_MDSS_FAKE_RES
-	int "Support fake yres"
-	default 1920
-	---help---
-	  Support fake yres information. but it only supports up to
-	  1280 x 1920 resolution for video panel.
-
 config FB_MSM_MDSS_EDP_PANEL
 	depends on FB_MSM_MDSS
 	bool "MDSS eDP Panel"
@@ -67,34 +43,5 @@ config FB_MSM_MDSS_MDP3
 	---help---
 	The MDP3 provides support for an older version display controller
 	included in latest display sub-system, known as MDSS.
-
-config FB_MSM_MDSS_OLED_PANEL
-	depends on FB_MSM_MDSS
-	bool "MDSS OLED panel dimming control"
-	default n
-	---help---
-	MDSS Samsung OLED panel dimming feature support
-	it can be support various OLED panel solution.
-
-config FB_PANEL_S6E8AA5X01
-	depends on FB_MSM_MDSS_OLED_PANEL
-	bool "SDC S6E8AA5X01 LDI"
-	default n
-	---help---
-	MDSS Samsung S6E8AA5X01 OLED Panel support
-	it can be support S6E8AA5X01 smart dimming feature
-
-config PANEL_S6E88A0_AMS427AP24_QHD
-	depends on FB_MSM_MDSS_OLED_PANEL
-	bool "LSI S6E88A0 LDI"
-	default n
-	---help---
-	LSI S6E88A0 LDI 540_960 SERRANOVE
-
-config MDSS_MDNIE_LITE_TUNING
-	depends on FB_MSM_MDSS_OLED_PANEL
-	bool "Support mdnie tuning"
-	default n
-	---help---
-	MDSS Samsung panel mdnie support
-	it can be support panel mdnie feature
+		
+source "drivers/video/msm/mdss/samsung/Kconfig"

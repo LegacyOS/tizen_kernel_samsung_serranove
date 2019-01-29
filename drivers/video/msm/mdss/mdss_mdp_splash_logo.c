@@ -20,6 +20,7 @@
 #include <linux/bootmem.h>
 #include <linux/iommu.h>
 #include <linux/fb.h>
+#include <mach/sec_debug.h>
 
 #include "mdss_fb.h"
 #include "mdss_mdp.h"
@@ -213,7 +214,7 @@ int mdss_mdp_splash_cleanup(struct msm_fb_data_type *mfd,
 		 * out on the dsi lanes.
 		 */
 		if (mdp5_data->handoff && ctl && ctl->is_video_mode) {
-			rc = mdss_mdp_display_commit(ctl, NULL);
+			rc = mdss_mdp_display_commit(ctl, NULL, NULL);
 			if (!IS_ERR_VALUE(rc)) {
 				mdss_mdp_display_wait4comp(ctl);
 			} else {
@@ -238,12 +239,14 @@ int mdss_mdp_splash_cleanup(struct msm_fb_data_type *mfd,
 
 	mdss_mdp_ctl_splash_finish(ctl, mdp5_data->handoff);
 
-	if (mdp5_data->splash_mem_addr) {
-		/* Give back the reserved memory to the system */
-		memblock_free(mdp5_data->splash_mem_addr,
-					mdp5_data->splash_mem_size);
-		free_bootmem_late(mdp5_data->splash_mem_addr,
-				 mdp5_data->splash_mem_size);
+	if (!sec_debug_is_enabled()) {
+		if (mdp5_data->splash_mem_addr) {
+			/* Give back the reserved memory to the system */
+			memblock_free(mdp5_data->splash_mem_addr,
+						mdp5_data->splash_mem_size);
+			free_bootmem_late(mdp5_data->splash_mem_addr,
+					 mdp5_data->splash_mem_size);
+		}
 	}
 
 	mdss_mdp_footswitch_ctrl_splash(0);
@@ -330,8 +333,8 @@ static int mdss_mdp_splash_kickoff(struct msm_fb_data_type *mfd,
 	 *    buffer boundry
 	 */
 	use_single_pipe =
-		!mfd->split_display ||
-		(mfd->split_display &&
+		!is_split_lm(mfd) ||
+		(is_split_lm(mfd) &&
 		((dest_rect->x + dest_rect->w) < mfd->split_fb_left ||
 		dest_rect->x > mfd->split_fb_left)) ||
 		(mdata->has_src_split &&

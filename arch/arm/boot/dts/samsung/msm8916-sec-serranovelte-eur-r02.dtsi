@@ -15,7 +15,8 @@
 #include "msm8916-camera.dtsi"
 #include "msm8916-camera-sensor-cdp-serranovelte.dtsi"
 #include "msm8916-sec-serranovelte-battery-r01.dtsi"
-#include "../../../../../drivers/video/msm/mdss/S6E88A0_AMS427AP24/dsi_panel_S6E88A0_AMS427AP24_qhd_octa_video.dtsi"
+//#include "../../../../../drivers/video/msm/mdss/samsung/S6E88A0_AMS427AP24/dsi_panel_S6E88A0_AMS427AP24_qhd_octa_video.dtsi"
+#include "dsi-panel-s6e8aa5x01-hd-video.dtsi"
 
 / {
 	aliases {
@@ -41,6 +42,12 @@
 };
 
 &soc {
+
+	samsung,simslot {
+		compatible = "simslot";
+		samsung,sim-slot = <&msm_gpio 72 0x1>;
+		status = "ok";
+	};
 
        i2c_7: i2c@7 {
 		cell-index = <7>;
@@ -439,6 +446,19 @@
 	status = "ok";
 };
 
+&rpm_bus {
+	rpm-regulator-ldoa17 {
+		status = "okay";
+		pm8916_l17: regulator-l17 {
+			regulator-min-microvolt = <3000000>;
+			regulator-max-microvolt = <3000000>;
+            regulator-always-on = "yes";
+			qcom,init-voltage = <3000000>;
+			status = "okay";
+		};
+	};
+};
+
 &sdhc_1 {
 	vdd-supply = <&pm8916_l8>;
 	qcom,vdd-always-on;
@@ -550,15 +570,7 @@
 
 &mdss_mdp {
 	qcom,mdss-pref-prim-intf = "dsi";
-};
-
-&dsi_samsung_qHD_vid {
-	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
-	qcom,mdss-dsi-bl-pmic-pwm-frequency = <100>;
-	qcom,mdss-dsi-bl-pmic-bank-select = <0>;
-	qcom,cont-splash-enabled;
-	qcom,esd_irq_gpio = <&msm_gpio 108 0>;
-	qcom,esd-check-enabled;
+        qcom,mdss-clk-factor = <130 100>;	/* 1.3 times */
 };
 
 &pmx_lcd_esd_det {
@@ -569,13 +581,80 @@
                  qcom,num-grp-pins = <1>;
                  qcom,pins =  <&gp 25>;
 };
+
+&dsi_s6e8aa5x01_hd_video {
+	qcom,mdss-dsi-booting-brightness = <255>;
+};
+
+
 &mdss_dsi0 {
-	qcom,dsi-pref-prim-pan = <&dsi_samsung_qHD_vid>;
+	qcom,dsi-pref-prim-pan = <&dsi_s6e8aa5x01_hd_video>;
 	pinctrl-names = "mdss_default", "mdss_sleep";
 	pinctrl-0 = <&mdss_dsi_active &lcd_esd_det_active>;
 	pinctrl-1 = <&mdss_dsi_suspend &lcd_esd_det_suspend>;
 	qcom,platform-reset-gpio = <&msm_gpio 25 0>;
+	gdsc-supply = <&gdsc_mdss>;
+	vdda-supply = <&pm8916_l2>;
+	vdd-supply = <&pm8916_l17>;
+	vddio-supply = <&pm8916_l6>;
+
+	qcom,core-supply-entries {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,core-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "gdsc";
+			qcom,supply-min-voltage = <0>;
+			qcom,supply-max-voltage = <0>;
+			qcom,supply-enable-load = <0>;
+			qcom,supply-disable-load = <0>;
+		};
+	};
+
+	qcom,ctrl-supply-entries {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,ctrl-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "vdda";
+			qcom,supply-min-voltage = <1200000>;
+			qcom,supply-max-voltage = <1200000>;
+			qcom,supply-enable-load = <100000>;
+			qcom,supply-disable-load = <100>;
+			qcom,supply-post-on-sleep = <0>;
+		};
+	};
+
+	qcom,panel-supply-entries {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,panel-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "vdd";
+			qcom,supply-min-voltage = <3000000>;
+			qcom,supply-max-voltage = <3000000>;
+			qcom,supply-enable-load = <100000>;
+			qcom,supply-disable-load = <100>;
+		};
+
+		qcom,panel-supply-entry@1 {
+			reg = <1>;
+			qcom,supply-name = "vddio";
+			qcom,supply-min-voltage = <1800000>;
+			qcom,supply-max-voltage = <1800000>;
+			qcom,supply-enable-load = <100000>;
+			qcom,supply-disable-load = <100>;
+			qcom,supply-pre-on-sleep = <0>;
+			qcom,supply-post-on-sleep = <5>; /*min: 5ms*/
+			qcom,supply-pre-off-sleep = <1>; /*min: 10us*/
+			qcom,supply-post-off-sleep = <0>;
+		};
+	};
 };
+
 
 &pm8916_chg {
 	status = "ok";

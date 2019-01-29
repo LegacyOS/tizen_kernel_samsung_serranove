@@ -31,15 +31,12 @@
 #define MDSS_MDP_CURSOR_HEIGHT 64
 #define MDSS_MDP_CURSOR_SIZE (MDSS_MDP_CURSOR_WIDTH*MDSS_MDP_CURSOR_WIDTH*4)
 
-#define MDP_CLK_DEFAULT_RATE	200000000
 #define PHASE_STEP_SHIFT	21
-#define MAX_MIXER_WIDTH		2048
 #define MAX_LINE_BUFFER_WIDTH	2048
 #define MAX_MIXER_HEIGHT	0xFFFF
 #define MAX_IMG_WIDTH		0x3FFF
 #define MAX_IMG_HEIGHT		0x3FFF
 #define AHB_CLK_OFFSET		0x2B4
-#define MAX_DST_W		MAX_MIXER_WIDTH
 #define MAX_DST_H		MAX_MIXER_HEIGHT
 #define MAX_DOWNSCALE_RATIO	4
 #define MAX_UPSCALE_RATIO	20
@@ -47,6 +44,7 @@
 #define HORSCALER_NUM_FILTER_TAPS	8
 #define HORSCALER_COEFF_NUM		17
 #define MDP_MIN_VBP		4
+#define MDP_MIN_FETCH		9
 #define MAX_FREE_LIST_SIZE	12
 
 #define C3_ALPHA	3	/* alpha */
@@ -55,7 +53,7 @@
 #define C0_G_Y		0	/* G/luma */
 
 /* wait for at most 2 vsync for lowest refresh rate (24hz) */
-#define KOFF_TIMEOUT msecs_to_jiffies(84)
+#define KOFF_TIMEOUT msecs_to_jiffies(1000)
 
 #define OVERFETCH_DISABLE_TOP		BIT(0)
 #define OVERFETCH_DISABLE_BOTTOM	BIT(1)
@@ -64,6 +62,10 @@
 
 #define PERF_STATUS_DONE 0
 #define PERF_STATUS_BUSY 1
+
+#define PERF_CALC_PIPE_APPLY_CLK_FUDGE	BIT(0)
+#define PERF_CALC_PIPE_SINGLE_LAYER	BIT(1)
+#define PERF_CALC_PIPE_CALC_SMP_SIZE	BIT(2)
 
 enum mdss_mdp_perf_state_type {
 	PERF_SW_COMMIT_STATE = 0,
@@ -105,8 +107,7 @@ enum mdss_mdp_block_type {
 
 enum mdss_mdp_csc_type {
 	MDSS_MDP_CSC_RGB2RGB,
-	MDSS_MDP_CSC_YUV2RGB_LIMIT,
-	MDSS_MDP_CSC_YUV2RGB_FULL,
+	MDSS_MDP_CSC_YUV2RGB,
 	MDSS_MDP_CSC_RGB2YUV,
 	MDSS_MDP_CSC_YUV2YUV,
 	MDSS_MDP_MAX_CSC
@@ -117,6 +118,20 @@ enum mdp_wfd_blk_type {
 	MDSS_MDP_WFD_INTERFACE,
 	MDSS_MDP_WFD_DEDICATED,
 };
+
+/**
+ * enum mdp_commit_stage_type - Indicate different commit stages
+ *
+ * @MDP_COMMIT_STATE_WAIT_FOR_PINGPONG:	At the stage of being ready to
+*			wait for pingpong buffer.
+ * @MDP_COMMIT_STATE_PINGPONG_DONE:		At the stage that pingpong
+ *			buffer is ready.
+ */
+enum mdp_commit_stage_type {
+	MDP_COMMIT_STAGE_SETUP_DONE,
+	MDP_COMMIT_STAGE_READY_FOR_KICKOFF,
+};
+
 
 struct mdss_mdp_ctl;
 typedef void (*mdp_vsync_handler_t)(struct mdss_mdp_ctl *, ktime_t);
@@ -197,6 +212,7 @@ struct mdss_mdp_ctl {
 	int (*display_fnc) (struct mdss_mdp_ctl *ctl, void *arg);
 	int (*wait_fnc) (struct mdss_mdp_ctl *ctl, void *arg);
 	int (*wait_pingpong) (struct mdss_mdp_ctl *ctl, void *arg);
+	int (*wait_video_pingpong) (struct mdss_mdp_ctl *ctl, void *arg);
 	u32 (*read_line_cnt_fnc) (struct mdss_mdp_ctl *);
 	int (*add_vsync_handler) (struct mdss_mdp_ctl *,
 					struct mdss_mdp_vsync_handler *);
@@ -209,6 +225,7 @@ struct mdss_mdp_ctl {
 
 	void *priv_data;
 	u32 wb_type;
+	bool prg_fet;
 };
 
 struct mdss_mdp_mixer {
@@ -363,6 +380,7 @@ struct mdss_mdp_pipe {
 	char __iomem *base;
 	u32 ftch_id;
 	u32 xin_id;
+	u32 panic_ctrl_ndx;
 	struct mdss_mdp_shared_reg_ctrl clk_ctrl;
 	struct mdss_mdp_shared_reg_ctrl clk_status;
 	struct mdss_mdp_shared_reg_ctrl sw_reset;
@@ -433,6 +451,7 @@ struct mdss_overlay_private {
 
 	struct mdss_data_type *mdata;
 	struct mutex ov_lock;
+	struct mutex dfps_lock;
 	struct mdss_mdp_ctl *ctl;
 	struct mdss_mdp_wb *wb;
 
@@ -456,6 +475,13 @@ struct mdss_overlay_private {
 	struct mdss_mdp_vsync_handler vsync_retire_handler;
 	struct work_struct retire_work;
 	int retire_cnt;
+	bool kickoff_released;
+};
+
+struct mdss_mdp_commit_cb {
+	void *data;
+	int (*commit_cb_fnc) (enum mdp_commit_stage_type commit_state,
+		void *data);
 };
 
 /**
@@ -515,15 +541,15 @@ static inline u32 mdp_mixer_read(struct mdss_mdp_mixer *mixer, u32 reg)
 	return readl_relaxed(mixer->base + reg);
 }
 
-static inline void mdss_mdp_pingpong_write(struct mdss_mdp_mixer *mixer,
+static inline void mdss_mdp_pingpong_write(char __iomem *pingpong_base,
 				      u32 reg, u32 val)
 {
-	writel_relaxed(val, mixer->pingpong_base + reg);
+	writel_relaxed(val, pingpong_base + reg);
 }
 
-static inline u32 mdss_mdp_pingpong_read(struct mdss_mdp_mixer *mixer, u32 reg)
+static inline u32 mdss_mdp_pingpong_read(char __iomem *pingpong_base, u32 reg)
 {
-	return readl_relaxed(mixer->pingpong_base + reg);
+	return readl_relaxed(pingpong_base + reg);
 }
 
 static inline int mdss_mdp_pipe_is_sw_reset_available(
@@ -556,6 +582,17 @@ static inline struct clk *mdss_mdp_get_clk(u32 clk_idx)
 	return NULL;
 }
 
+static inline int mdss_mdp_panic_signal_supported(
+	struct mdss_data_type *mdata, struct mdss_mdp_pipe *pipe)
+{
+	return ((IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
+					MDSS_MDP_HW_REV_105) ||
+		IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev,
+					MDSS_MDP_HW_REV_108)) &&
+		pipe->mixer_left &&
+		pipe->mixer_left->type == MDSS_MDP_MIXER_TYPE_INTF);
+}
+
 irqreturn_t mdss_mdp_isr(int irq, void *ptr);
 int mdss_iommu_attach(struct mdss_data_type *mdata);
 int mdss_iommu_dettach(struct mdss_data_type *mdata);
@@ -571,7 +608,8 @@ int mdss_mdp_set_intr_callback(u32 intr_type, u32 intf_num,
 
 void mdss_mdp_footswitch_ctrl_splash(int on);
 void mdss_mdp_batfet_ctrl(struct mdss_data_type *mdata, int enable);
-int mdss_mdp_bus_scale_set_quota(u64 ab_quota, u64 ib_quota);
+int mdss_mdp_bus_scale_set_quota(u64 ab_quota_rt, u64 ab_quota_nrt,
+				u64 ib_quota);
 void mdss_mdp_set_clk_rate(unsigned long min_clk_rate);
 unsigned long mdss_mdp_get_clk_rate(u32 clk_idx);
 int mdss_mdp_vsync_clk_enable(int enable);
@@ -626,7 +664,10 @@ int mdss_mdp_perf_bw_check_pipe(struct mdss_mdp_perf_params *perf,
 		struct mdss_mdp_pipe *pipe);
 int mdss_mdp_perf_calc_pipe(struct mdss_mdp_pipe *pipe,
 	struct mdss_mdp_perf_params *perf, struct mdss_rect *roi,
-	bool apply_fudge, bool is_single_layer);
+	u32 flags);
+u32 mdss_mdp_calc_latency_buf_bytes(bool is_yuv, bool is_bwc,
+	bool is_tile, u32 src_w, u32 bpp, bool use_latency_buf_percentage,
+	u32 smp_bytes);
 u32 mdss_mdp_get_mdp_clk_rate(struct mdss_data_type *mdata);
 int mdss_mdp_ctl_notify(struct mdss_mdp_ctl *ctl, int event);
 void mdss_mdp_ctl_notifier_register(struct mdss_mdp_ctl *ctl,
@@ -653,7 +694,8 @@ int mdss_mdp_mixer_pipe_update(struct mdss_mdp_pipe *pipe,
 int mdss_mdp_mixer_pipe_unstage(struct mdss_mdp_pipe *pipe,
 	struct mdss_mdp_mixer *mixer);
 void mdss_mdp_mixer_unstage_all(struct mdss_mdp_mixer *mixer);
-int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg);
+int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg,
+	struct mdss_mdp_commit_cb *commit_cb);
 int mdss_mdp_display_wait4comp(struct mdss_mdp_ctl *ctl);
 int mdss_mdp_display_wait4pingpong(struct mdss_mdp_ctl *ctl);
 int mdss_mdp_display_wakeup_time(struct mdss_mdp_ctl *ctl,
@@ -715,6 +757,7 @@ int mdss_mdp_pipe_map(struct mdss_mdp_pipe *pipe);
 void mdss_mdp_pipe_unmap(struct mdss_mdp_pipe *pipe);
 struct mdss_mdp_pipe *mdss_mdp_pipe_alloc_dma(struct mdss_mdp_mixer *mixer);
 
+u32 mdss_mdp_smp_calc_num_blocks(struct mdss_mdp_pipe *pipe);
 u32 mdss_mdp_smp_get_size(struct mdss_mdp_pipe *pipe);
 int mdss_mdp_smp_reserve(struct mdss_mdp_pipe *pipe);
 void mdss_mdp_smp_unreserve(struct mdss_mdp_pipe *pipe);
@@ -729,6 +772,7 @@ int mdss_mdp_ctl_addr_setup(struct mdss_data_type *mdata, u32 *ctl_offsets,
 		u32 *wb_offsets, u32 len);
 
 int mdss_mdp_pipe_fetch_halt(struct mdss_mdp_pipe *pipe);
+int mdss_mdp_pipe_panic_signal_ctrl(struct mdss_mdp_pipe *pipe, bool enable);
 int mdss_mdp_pipe_destroy(struct mdss_mdp_pipe *pipe);
 int mdss_mdp_pipe_queue_data(struct mdss_mdp_pipe *pipe,
 			     struct mdss_mdp_data *src_data);
@@ -777,7 +821,7 @@ struct mdss_mdp_ctl *mdss_mdp_ctl_mixer_switch(struct mdss_mdp_ctl *ctl,
 void mdss_mdp_set_roi(struct mdss_mdp_ctl *ctl,
 					struct mdp_display_commit *data);
 
-int mdss_mdp_wb_set_format(struct msm_fb_data_type *mfd, int dst_format);
+int mdss_mdp_wb_set_format(struct msm_fb_data_type *mfd, u32 dst_format);
 int mdss_mdp_wb_get_format(struct msm_fb_data_type *mfd,
 					struct mdp_mixer_cfg *mixer_cfg);
 
@@ -796,4 +840,7 @@ int mdss_mdp_footswitch_ctrl_idle_pc(int on, struct device *dev);
 				(mfd->mdp.private1))->wb)
 
 int  mdss_mdp_ctl_reset(struct mdss_mdp_ctl *ctl);
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+void mdss_mdp_underrun_clk_info(void);
+#endif
 #endif /* MDSS_MDP_H */

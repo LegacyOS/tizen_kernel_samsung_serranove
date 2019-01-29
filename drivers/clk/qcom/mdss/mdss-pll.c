@@ -19,6 +19,9 @@
 #include <linux/err.h>
 #include <linux/delay.h>
 #include <linux/iopoll.h>
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+#include "../../../video/msm/mdss/samsung/ss_dsi_panel_common.h" /* UTIL HEADER */
+#endif
 #include <linux/clk/msm-clock-generic.h>
 
 #include "mdss-pll.h"
@@ -191,6 +194,9 @@ static int mdss_pll_probe(struct platform_device *pdev)
 	struct resource *pll_base_reg;
 	struct resource *phy_base_reg;
 	struct mdss_pll_resources *pll_res;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	struct samsung_display_driver_data *vdd = samsung_get_vdd();
+#endif
 
 	if (!pdev->dev.of_node) {
 		pr_err("MDSS pll driver only supports device tree probe\n");
@@ -228,6 +234,11 @@ static int mdss_pll_probe(struct platform_device *pdev)
 		rc = -ENOMEM;
 		goto io_error;
 	}
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	if (!strcmp(label, "MDSS DSI 0 PLL") || !strcmp(label, "MDSS DSI 1 PLL"))
+		;//vdd->dump_info[pll_res->index].dsi_pll.virtual_addr = (size_t)pll_res->pll_base;
+#endif
 
 	rc = mdss_pll_resource_parse(pdev, pll_res);
 	if (rc) {

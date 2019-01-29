@@ -140,6 +140,7 @@ irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 
 	mdp_drm_intr_status = isr;
 
+
 	mask = readl_relaxed(mdata->mdp_base + MDSS_MDP_REG_INTR_EN);
 	writel_relaxed(isr, mdata->mdp_base + MDSS_MDP_REG_INTR_CLEAR);
 
@@ -195,6 +196,11 @@ irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 		mdss_misr_crc_collect(mdata, DISPLAY_MISR_DSI0);
 	}
 
+	if (isr & MDSS_MDP_INTR_INTF_1_VSYNC) {
+		mdss_mdp_intr_done(MDP_INTR_VSYNC_INTF_1);
+		mdss_misr_crc_collect(mdata, DISPLAY_MISR_DSI0);
+	}
+
 	if (isr & MDSS_MDP_INTR_INTF_2_VSYNC) {
 		mdss_mdp_intr_done(MDP_INTR_VSYNC_INTF_2);
 		mdss_misr_crc_collect(mdata, DISPLAY_MISR_DSI1);
@@ -215,7 +221,8 @@ irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 		mdss_misr_crc_collect(mdata, DISPLAY_MISR_MDP);
 	}
 
-	if (isr & MDSS_MDP_INTR_WB_2_DONE) {
+	if (isr & ((mdata->mdp_rev == MDSS_MDP_HW_REV_108) ?
+		MDSS_MDP_INTR_WB_2_DONE >> 2 : MDSS_MDP_INTR_WB_2_DONE)) {
 		mdss_mdp_intr_done(MDP_INTR_WB_2);
 		mdss_misr_crc_collect(mdata, DISPLAY_MISR_MDP);
 	}

@@ -15,7 +15,8 @@
 #include "msm8916-camera.dtsi"
 #include "msm8916-camera-sensor-cdp-serranovelte.dtsi"
 #include "msm8916-sec-serranovelte-battery-r01.dtsi"
-#include "../../../../../drivers/video/msm/mdss/S6E88A0_AMS427AP24/dsi_panel_S6E88A0_AMS427AP24_qhd_octa_video.dtsi"
+#include "../../../../../drivers/video/msm/mdss/samsung/S6E88A0_AMS427AP24/dsi_panel_S6E88A0_AMS427AP24_qhd_octa_video.dtsi"
+//#include "dsi-panel-s6e8aa5x01-hd-video.dtsi"
 
 / {
 	aliases {
@@ -42,6 +43,12 @@
 
 &soc {
 
+	samsung,simslot {
+		compatible = "simslot";
+		samsung,sim-slot = <&msm_gpio 72 0x1>;
+		status = "ok";
+	};
+
        i2c_7: i2c@7 {
 		cell-index = <7>;
 		compatible = "i2c-gpio";
@@ -54,11 +61,12 @@
 		tc360@20 {
 			compatible = "coreriver,coreriver-tkey";
 			reg = <0x20>;
-	       	interrupt-parent = <&msm_gpio>;
+	       		interrupt-parent = <&msm_gpio>;
 			interrupts = <98 0>;
 			pinctrl-names = "tkey_gpio_active","tkey_gpio_suspend";
-			pinctrl-0 = <&tkey_i2c_active>;
+			pinctrl-0 = <&tkey_i2c_active &tkey_irq_active>;
 			pinctrl-1 = <&tkey_i2c_active>;
+
 			coreriver,vcc_en-gpio = <&msm_gpio 60 0x00>;
 			coreriver,scl-gpio = <&msm_gpio 17 0x00>;
 			coreriver,sda-gpio = <&msm_gpio 16 0x00>;
@@ -66,9 +74,39 @@
 			coreriver,tkey-keycodes = <254 158>;
 			coreriver,i2c-pull-up = <1>;
 			coreriver,gpio_seperated = <1>;
-			/*coreriver,firm-up;*/
+			coreriver,fw-name = "tc360_serrano_eur";
+			coreriver,firm-up;
+			coreriver,boot_on_ldo;
 			coreriver,vcc_en-gpio2p8 = <&msm_gpio 86 0x00>;		
 		};
+};
+
+	input_booster {
+		status = "ok";
+	};
+
+	samsung_input_bridge {
+		compatible = "samsung_input_bridge";
+		input_bridge,num_map = <3>;
+		input_bridge,map_codes ="input_bridge,logdump_map_code",
+					"input_bridge,safemode_map_code",
+					"input_bridge,hall_log_map_code";
+		input_bridge,map_types ="input_bridge,logdump_map_type",
+					"input_bridge,safemode_map_type",
+					"input_bridge,hall_log_map_type";
+		input_bridge,logdump_map_code  = <115 114 115 114 116 114 115 116>;
+		input_bridge,logdump_map_type  = <1 1 1 1 1 1 1 1>;
+		input_bridge,safemode_map_code  = <114>;
+		input_bridge,safemode_map_type  = <1>;
+		input_bridge,hall_log_map_code = <116 8 8 8 8 8 8 8 8>;
+		input_bridge,hall_log_map_type = <1 2 2 2 2 2 2 2 2>;
+		input_bridge,env_str = "APPS_LOG", "SAFE_MODE", "APPS_LOG";
+		input_bridge,env_value = "ON", "ON", "ON";
+		input_bridge,map_key = <1>;
+		input_bridge,enable_uevent = <1>;
+		input_bridge,uevent_action = <2>;
+		input_bridge,dev_num = <2>;
+		input_bridge,dev_name_str = "gpio-keys", "qpnp_pon";
 	};
 
 	i2c@78b9000 { /* BLSP1 QUP5 */
@@ -86,6 +124,7 @@
 			pinctrl-0 = <&tsp_en_active &ts_int_active>;
 			pinctrl-1 = <&tsp_en_suspend &ts_int_suspend>;
 			vddo-supply = <&pm8916_l6>;
+			vdd_ldo_name = "vddo";
 			zinitix,vdd_en-gpio = <&msm_gpio 73 0x01>;
 			zinitix,irq-gpio = <&msm_gpio 13 0x00>;
 			zinitix,x_resolution = <540>;
@@ -199,12 +238,13 @@
 			};
 		};
 	};
+
 	samsung,gpio_settings{
 		compatible = "sec_gpio_sett";
 		pinctrl-names = "sec_gpio_active","sec_gpio_suspend";
-		pinctrl-0 = <&ts_int_active>;
-		pinctrl-1 = <&ts_int_suspend>;
-	};
+		pinctrl-0 = <&ts_int_active &home_key_pin &touchkey_int_active &touchkey_en_active &touchkey_i2c_sda_active &touchkey_i2c_scl_active &muic_int_pin>;
+		pinctrl-1 = <&ts_int_suspend &touchkey_int_suspend &touchkey_en_suspend &touchkey_i2c_sda_suspend &touchkey_i2c_scl_suspend>;
+		};
 	
 	i2c_12:i2c@12 {
 		cell-index = <12>;
@@ -332,6 +372,7 @@
 			"AMIC1", "MIC BIAS External",
 			"AMIC2", "Headset Mic",
 			"AMIC3", "MIC BIAS External";
+
 		pinctrl-names = "cdc_lines_act",
 				"cdc_lines_sus";
 		pinctrl-0 = <&cdc_pdm_lines_act>;
@@ -350,14 +391,15 @@
 		compatible = "gpio-keys";
 		input-name = "gpio-keys";
 		pinctrl-names = "tlmm_gpio_key_active","tlmm_gpio_key_suspend";
-		pinctrl-0 = <&gpio_key_active>;
-		pinctrl-1 = <&gpio_key_suspend>;
+		pinctrl-0 = <&home_key_pin &gpio_key_active>;
+		pinctrl-1 = <&home_key_pin &gpio_key_suspend>;
+
 
 		home_key {
 			label = "home_key";
 			gpios = <&msm_gpio 109 0x1>;
 			linux,input-type = <1>;
-			linux,code = <172>;
+			linux,code = <139>;
 			gpio-key,wakeup;
 			debounce-interval = <15>;
 		};
@@ -392,7 +434,7 @@
 		#size-cells = <0>;
 
 		sm5504@14{
-			compatible = "sm5504,i2c";
+			compatible = "SiliconMitus,sm5504";
 			reg = <0x14>;
 			interrupt-parent = <&msm_gpio>;
 			interrupts= <12 0>;
@@ -433,10 +475,30 @@
 		pinctrl-1 = <&earjack_det_sus &earjack_switch_sus>;
 	};
 
+	sec_pinctrl_dvs {
+		compatible = "sec_pinctrl_dvs";
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&nc_default &hw_default>;
+		pinctrl-1 = <&nc_sleep &hw_sleep>;
+	};
+
 };
 
 &blsp1_uart1 {
 	status = "ok";
+};
+
+&rpm_bus {
+	rpm-regulator-ldoa17 {
+		status = "okay";
+		pm8916_l17: regulator-l17 {
+			regulator-min-microvolt = <3000000>;
+			regulator-max-microvolt = <3000000>;
+            regulator-always-on = "yes";
+			qcom,init-voltage = <3000000>;
+			status = "okay";
+		};
+	};
 };
 
 &sdhc_1 {
@@ -462,6 +524,7 @@
 };
 
 &sdhc_2 {
+	qcom,no-1p8v;
 	vdd-supply = <&pm8916_l11>;
 	qcom,vdd-voltage-level = <2800000 2950000>;
 	qcom,vdd-current-level = <15000 400000>;
@@ -553,12 +616,10 @@
 };
 
 &dsi_samsung_qHD_vid {
-	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
 	qcom,mdss-dsi-bl-pmic-pwm-frequency = <100>;
 	qcom,mdss-dsi-bl-pmic-bank-select = <0>;
 	qcom,cont-splash-enabled;
 	qcom,esd_irq_gpio = <&msm_gpio 108 0>;
-	qcom,esd-check-enabled;
 };
 
 &pmx_lcd_esd_det {
@@ -576,6 +637,7 @@
 	pinctrl-1 = <&mdss_dsi_suspend &lcd_esd_det_suspend>;
 	qcom,platform-reset-gpio = <&msm_gpio 25 0>;
 };
+
 
 &pm8916_chg {
 	status = "ok";

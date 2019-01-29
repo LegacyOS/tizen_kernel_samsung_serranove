@@ -45,6 +45,11 @@
 #define MIPI_DSI_PANEL_720P_PT	8
 #define DSI_PANEL_MAX	8
 
+#define MDSS_DSI_HW_REV_100_1		0x10000001	/* 8x26    */
+#define MDSS_DSI_HW_REV_100_2		0x10000002	/* 8x26v2  */
+#define MDSS_DSI_HW_REV_103_1		0x10030001	/* 8916/8936 */
+#define CMD_REQ_SINGLE_TX 0x0010
+
 enum {		/* mipi dsi panel */
 	DSI_VIDEO_MODE,
 	DSI_CMD_MODE,
@@ -79,12 +84,17 @@ enum dsi_panel_bl_ctrl {
 	BL_PWM,
 	BL_WLED,
 	BL_DCS_CMD,
+	BL_GPIO_SWING,
 	UNKNOWN_CTRL,
 };
 
 enum dsi_panel_status_mode {
 	ESD_BTA,
 	ESD_REG,
+	ESD_REG_NT35596,
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	ESD_REG_IRQ,
+#endif
 	ESD_MAX,
 };
 
@@ -159,6 +169,7 @@ enum dsi_pm_type {
 #define DSI_MDP_TERM    BIT(8)
 #define DSI_BTA_TERM    BIT(1)
 #define DSI_CMD_TERM    BIT(0)
+#define DSI_INTR_TOTAL_MASK		0x2222AA02
 
 extern struct device dsi_dev;
 extern u32 dsi_irq;
@@ -205,13 +216,16 @@ struct dsi_clk_desc {
 	u32 pre_div_func;
 };
 
-
 struct dsi_panel_cmds {
 	char *buf;
 	int blen;
 	struct dsi_cmd_desc *cmds;
 	int cmd_cnt;
 	int link_state;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	char *read_size;
+	char *read_startoffset;
+#endif
 };
 
 struct dsi_kickoff_action {
@@ -239,6 +253,8 @@ enum {
 	DSI_CTRL_MAX,
 };
 
+#define DSI_CTRL_LEFT       DSI_CTRL_0
+#define DSI_CTRL_RIGHT      DSI_CTRL_1
 /* DSI controller #0 is always treated as a master in broadcast mode */
 #define DSI_CTRL_MASTER		DSI_CTRL_0
 #define DSI_CTRL_SLAVE		DSI_CTRL_1
@@ -249,7 +265,9 @@ enum {
 
 #define DSI_EV_PLL_UNLOCKED		0x0001
 #define DSI_EV_MDP_FIFO_UNDERFLOW	0x0002
+#define DSI_EV_DSI_FIFO_EMPTY		0x0004
 #define DSI_EV_MDP_BUSY_RELEASE		0x80000000
+#define MAX_BACKLIGHT_TFT_GPIO 0x4
 
 struct mdss_dsi_ctrl_pdata {
 	int ndx;	/* panel_num */
@@ -257,9 +275,14 @@ struct mdss_dsi_ctrl_pdata {
 	int (*off) (struct mdss_panel_data *pdata);
 	int (*partial_update_fnc) (struct mdss_panel_data *pdata);
 	int (*check_status) (struct mdss_dsi_ctrl_pdata *pdata);
+	int (*check_read_status) (struct mdss_dsi_ctrl_pdata *pdata);
 	int (*cmdlist_commit)(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp);
+	int (*registered) (struct mdss_panel_data *pdata);
 	void (*switch_mode) (struct mdss_panel_data *pdata, int mode);
-	int (*panel_gpio_request) (struct mdss_dsi_ctrl_pdata *ctrl_pdata);
+	int (*dimming_init) (struct mdss_panel_data *pdata);
+#ifdef CONFIG_FB_MSM_MDSS_SAMSUNG
+	int (*event_handler) (struct mdss_panel_data *pdata, int e, void *arg);
+#endif
 	struct mdss_panel_data panel_data;
 	unsigned char *ctrl_base;
 	struct dss_io_data ctrl_io;
@@ -281,6 +304,8 @@ struct mdss_dsi_ctrl_pdata {
 	int irq_cnt;
 	int rst_gpio;
 	int disp_en_gpio;
+	int disp_te_gpio;
+	int backlight_tft_gpio[MAX_BACKLIGHT_TFT_GPIO];
 	int bklt_en_gpio;
 	int mode_gpio;
 	int bklt_ctrl;	/* backlight ctrl */
@@ -299,22 +324,28 @@ struct mdss_dsi_ctrl_pdata {
 	struct mdss_hw *dsi_hw;
 	struct mdss_panel_recovery *recovery;
 
+	bool cmd_sync_wait_broadcast;
+	bool cmd_sync_wait_trigger;
+
 	struct dsi_panel_cmds on_cmds;
 	struct dsi_panel_cmds off_cmds;
 	struct dsi_panel_cmds status_cmds;
+	u32 status_cmds_rlen;
 	u32 status_value;
+	u32 status_error_count;
 
 	struct dsi_panel_cmds video2cmd;
 	struct dsi_panel_cmds cmd2video;
 
 	struct dcs_cmd_list cmdlist;
-	struct completion dma_comp;
-	struct completion mdp_comp;
+	wait_queue_head_t dma_waitq;
+	wait_queue_head_t cmd_mdp_waitq;
 	struct completion video_comp;
 	struct completion bta_comp;
 	spinlock_t irq_lock;
 	spinlock_t mdp_lock;
-	int mdp_busy;
+	atomic_t dma_cnt;
+	atomic_t cmd_mdp_cnt;
 	struct mutex mutex;
 	struct mutex cmd_mutex;
 
@@ -326,7 +357,6 @@ struct mdss_dsi_ctrl_pdata {
 	int status_mode;
 
 	struct dsi_pinctrl_res pin_res;
-	unsigned int power;
 };
 
 struct dsi_status_data {
@@ -378,8 +408,8 @@ void mdss_dsi_phy_sw_reset(unsigned char *ctrl_base);
 void mdss_dsi_cmd_test_pattern(struct mdss_dsi_ctrl_pdata *ctrl);
 void mdss_dsi_video_test_pattern(struct mdss_dsi_ctrl_pdata *ctrl);
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl);
-
 void mdss_dsi_ctrl_init(struct mdss_dsi_ctrl_pdata *ctrl);
+void mdss_dsi_ctrl_phy_restore(struct mdss_dsi_ctrl_pdata *ctrl);
 void mdss_dsi_cmd_mdp_busy(struct mdss_dsi_ctrl_pdata *ctrl);
 void mdss_dsi_wait4video_done(struct mdss_dsi_ctrl_pdata *ctrl);
 int mdss_dsi_cmdlist_commit(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp);
@@ -388,7 +418,6 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl);
 int mdss_dsi_reg_status_check(struct mdss_dsi_ctrl_pdata *ctrl);
 bool __mdss_dsi_clk_enabled(struct mdss_dsi_ctrl_pdata *ctrl, u8 clk_type);
 int mdss_dsi_ulps_config(struct mdss_dsi_ctrl_pdata *ctrl, int enable);
-
 int mdss_dsi_panel_init(struct device_node *node,
 		struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 		bool cmd_cfg_cont_splash);
@@ -414,6 +443,16 @@ static inline const char *__mdss_dsi_pm_supply_node_name(
 	case DSI_PANEL_PM:	return "qcom,panel-supply-entries";
 	default:		return "???";
 	}
+}
+
+static inline bool mdss_dsi_split_display_enabled(void)
+{
+	/*
+	 * currently the only supported mode is split display.
+	 * So, if both controllers are initialized, then assume that
+	 * split display mode is enabled.
+	 */
+	return ctrl_list[DSI_CTRL_MASTER] && ctrl_list[DSI_CTRL_SLAVE];
 }
 
 static inline bool mdss_dsi_broadcast_mode_enabled(void)
@@ -465,4 +504,13 @@ static inline bool mdss_dsi_ulps_feature_enabled(
 	return pdata->panel_info.ulps_feature_enabled;
 }
 
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+int mdss_samsung_parse_dcs_cmds(struct device_node *np,
+		struct dsi_panel_cmds *pcmds, char *cmd_key, char *link_key);
+u32 mdss_samsung_panel_cmd_read(struct mdss_dsi_ctrl_pdata *ctrl,
+		struct dsi_panel_cmds *pcmds, int read_size);
+void mdss_samsung_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
+		struct dsi_panel_cmds *pcmds);
+struct mdss_dsi_ctrl_pdata **mdss_dsi_get_ctrl(void);
+#endif
 #endif /* MDSS_DSI_H */

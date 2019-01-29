@@ -26,6 +26,10 @@
 #include "mdss_panel.h"
 #include "mdss_dsi.h"
 #include "mdss_debug.h"
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+#include "samsung/ss_dsi_panel_common.h"
+#endif
+
 
 static int mdss_dsi_pinctrl_set_state(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 					bool active);
@@ -65,6 +69,10 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 	int ret = 0;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	int i = 0;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	struct mipi_panel_info *mipi = &pdata->panel_info.mipi;
+	struct samsung_display_driver_data *vdd = NULL;
+#endif
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -74,6 +82,11 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	vdd = check_valid_ctrl(ctrl_pdata);
+#endif
+
 	pr_debug("%s: enable=%d\n", __func__, enable);
 
 	/*
@@ -101,10 +114,29 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 			}
 		}
 
-		if (!pdata->panel_info.mipi.lp11_init) {
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+		if (mdss_samsung_panel_extra_power(pdata, enable))
+			pr_err("%s : failed to enable extra power\n", __func__);
+
+		if (vdd->backlight_tft_config) {
+			ret = vdd->backlight_tft_config(pdata, enable);
+			if (ret)
+				pr_info("%s : failed to enable tft backlight configuration\n", __func__);
+		} else
+			pr_info("%s : backlight_tft_config is null", __func__);
+#endif
+
+		/*
+		 * If the panel is already on (as part of the cont splash
+		 * screen feature), then we need to request all the GPIOs that
+		 * have already been configured in the bootloader. This needs
+		 * to be done irresepective of whether the lp11_init flag is
+		 * set or not.
+		 */
+		if (pdata->panel_info.panel_power_on ||
+			!pdata->panel_info.mipi.lp11_init) {
 			if (mdss_dsi_pinctrl_set_state(ctrl_pdata, true))
 				pr_debug("reset enable: pinctrl not enabled\n");
-
 			ret = mdss_dsi_panel_reset(pdata, 1);
 			if (ret) {
 				pr_err("%s: Panel reset failed. rc=%d\n",
@@ -119,6 +151,21 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 					__func__, ret);
 			goto error;
 		}
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+		if (mipi->power_off_delay)
+			usleep(mipi->power_off_delay);
+
+		if (mdss_samsung_panel_extra_power(pdata, enable))
+			pr_err("%s : failed to enable extra power\n", __func__);
+
+		if (vdd->backlight_tft_config) {
+			ret = vdd->backlight_tft_config(pdata, enable);
+			if (ret)
+				pr_info("%s : failed to enable tft backlight configuration\n", __func__);
+		}
+#endif
+
 		if (mdss_dsi_pinctrl_set_state(ctrl_pdata, false))
 			pr_debug("reset disable: pinctrl not enabled\n");
 
@@ -376,7 +423,7 @@ static int mdss_dsi_off(struct mdss_panel_data *pdata)
 				panel_data);
 
 	panel_info = &ctrl_pdata->panel_data.panel_info;
-	pr_debug("%s+: ctrl=%p ndx=%d\n", __func__,
+	pr_info("%s+: ctrl=%p ndx=%d\n", __func__,
 				ctrl_pdata, ctrl_pdata->ndx);
 
 	if (pdata->panel_info.type == MIPI_CMD_PANEL)
@@ -401,7 +448,7 @@ static int mdss_dsi_off(struct mdss_panel_data *pdata)
 	    && (panel_info->new_fps != panel_info->mipi.frame_rate))
 		panel_info->mipi.frame_rate = panel_info->new_fps;
 
-	pr_debug("%s-:\n", __func__);
+	pr_info("%s-:\n", __func__);
 
 	return ret;
 }
@@ -415,7 +462,7 @@ static void __mdss_dsi_ctrl_setup(struct mdss_panel_data *pdata)
 	u32 hbp, hfp, vbp, vfp, hspw, vspw, width, height;
 	u32 ystride, bpp, data, dst_bpp;
 	u32 dummy_xres = 0, dummy_yres = 0;
-	u32 hsync_period, vsync_period;
+	u32 hsync_period, vsync_period, ctrl_rev;
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
@@ -453,6 +500,10 @@ static void __mdss_dsi_ctrl_setup(struct mdss_panel_data *pdata)
 
 	mipi = &pdata->panel_info.mipi;
 	if (pdata->panel_info.type == MIPI_VIDEO_PANEL) {
+		ctrl_rev = MIPI_INP(ctrl_pdata->ctrl_base);
+		/* Enable DSI TIMING register double buffering for 8916/8939 */
+		if (ctrl_rev == MDSS_DSI_HW_REV_103_1)
+			MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x1e8, 0x1);
 		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x24,
 			((hspw + hbp + width + dummy_xres) << 16 |
 			(hspw + hbp)));
@@ -466,6 +517,9 @@ static void __mdss_dsi_ctrl_setup(struct mdss_panel_data *pdata)
 		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x30, (hspw << 16));
 		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x34, 0);
 		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x38, (vspw << 16));
+		/* Flush DSI TIMING registers for 8916/8939 */
+		if (ctrl_rev == MDSS_DSI_HW_REV_103_1)
+			MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x1e4, 0x1);
 
 	} else {		/* command mode */
 		if (mipi->dst_format == DSI_CMD_DST_FORMAT_RGB888)
@@ -694,12 +748,16 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	struct mdss_panel_info *pinfo;
 	struct mipi_panel_info *mipi;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
-	u32 tmp = 0;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	struct samsung_display_driver_data *vdd = NULL;
+	u32 reg_backup;
+#endif
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
+
 
 	if (pdata->panel_info.panel_power_on) {
 		pr_warn("%s:%d Panel already on.\n", __func__, __LINE__);
@@ -709,11 +767,22 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	pr_debug("%s+: ctrl=%p ndx=%d\n",
+	pr_info("%s+: ctrl=%p ndx=%d\n",
 				__func__, ctrl_pdata, ctrl_pdata->ndx);
 
 	pinfo = &pdata->panel_info;
 	mipi = &pdata->panel_info.mipi;
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	vdd = check_valid_ctrl(ctrl_pdata);
+	if (IS_ERR_OR_NULL(vdd)) {
+		pr_err("%s: Invalid data ctrl : 0x%zx\n", __func__, (size_t)vdd);
+		return -EINVAL;
+	}
+
+	if (vdd->esd_recovery.esd_irq_enable)
+		vdd->esd_recovery.esd_irq_enable(true, true, (void *)vdd);
+#endif
 
 	ret = mdss_dsi_panel_power_on(pdata, 1);
 	if (ret) {
@@ -740,37 +809,57 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	mdss_dsi_phy_init(pdata);
 	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_BUS_CLKS, 0);
 
+#if defined(CONFIG_SEC_DISP_CLK_TUNNING)
+	if (!pinfo->clk_rate) {
+		ret = mdss_dsi_clk_div_config(pinfo, 60);
+		ctrl_pdata->pclk_rate = mipi->dsi_pclk_rate;
+		ctrl_pdata->byte_clk_rate = pinfo->clk_rate / 8;
+		pr_info("%s: changed pclk=%d, bclk=%d\n", __func__,
+				ctrl_pdata->pclk_rate, ctrl_pdata->byte_clk_rate);
+	}
+#endif
 	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 1);
 
 	__mdss_dsi_ctrl_setup(pdata);
 	mdss_dsi_sw_reset(pdata);
 	mdss_dsi_host_init(pdata);
 
+
 	/*
 	 * Issue hardware reset line after enabling the DSI clocks and data
 	 * data lanes for LP11 init
 	 */
 	if (mipi->lp11_init) {
-		if (mipi->lp11_reset) {
-			tmp = MIPI_INP((ctrl_pdata->ctrl_base) + 0xac);
-			MIPI_OUTP((ctrl_pdata->ctrl_base) + 0xac, 0x1F << 16);
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+		if (vdd->dtsi_data[ctrl_pdata->ndx].samsung_lp11_init) {
+			/* LP11 */
+			reg_backup =
+				MIPI_INP((ctrl_pdata->ctrl_base) + 0xac);
+			MIPI_OUTP((ctrl_pdata->ctrl_base) + 0xac,
+					0x1F << 16);
 			wmb();
-			usleep(2000);
-		}
 
+			if (mipi->init_delay)
+				usleep(mipi->init_delay);
+		}
+#endif
 		if (mdss_dsi_pinctrl_set_state(ctrl_pdata, true))
 			pr_debug("reset enable: pinctrl not enabled\n");
 		mdss_dsi_panel_reset(pdata, 1);
-
-		if (mipi->lp11_reset) {
-			MIPI_OUTP((ctrl_pdata->ctrl_base) + 0xac, tmp);
-		}
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+		/* LP11 Restore */
+		if (vdd->dtsi_data[ctrl_pdata->ndx].samsung_lp11_init)
+			MIPI_OUTP((ctrl_pdata->ctrl_base) + 0xac,
+					reg_backup);
+#endif
 	}
 
 	if (mipi->init_delay)
 		usleep(mipi->init_delay);
 
 	if (mipi->force_clk_lane_hs) {
+		u32 tmp;
+
 		tmp = MIPI_INP((ctrl_pdata->ctrl_base) + 0xac);
 		tmp |= (1<<28);
 		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0xac, tmp);
@@ -780,7 +869,7 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	if (pdata->panel_info.type == MIPI_CMD_PANEL)
 		mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 0);
 
-	pr_debug("%s-:\n", __func__);
+	pr_info("%s-:\n", __func__);
 	return 0;
 }
 
@@ -969,11 +1058,108 @@ int mdss_dsi_cont_splash_on(struct mdss_panel_data *pdata)
 	return ret;
 }
 
-static int mdss_dsi_dfps_config(struct mdss_panel_data *pdata, int new_fps)
+static void __mdss_dsi_update_video_mode_total(struct mdss_panel_data *pdata,
+		int new_fps)
+{
+	u32 hsync_period, vsync_period, ctrl_rev;
+	u32 new_dsi_v_total, current_dsi_v_total;
+	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
+
+	if (pdata == NULL) {
+		pr_err("%s Invalid pdata\n", __func__);
+		return;
+	}
+
+	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
+			panel_data);
+	if (ctrl_pdata == NULL) {
+		pr_err("%s Invalid ctrl_pdata\n", __func__);
+		return;
+	}
+
+	vsync_period =
+		mdss_panel_get_vtotal(&pdata->panel_info);
+	hsync_period =
+		mdss_panel_get_htotal(&pdata->panel_info, true);
+	current_dsi_v_total =
+		MIPI_INP((ctrl_pdata->ctrl_base) + 0x2C);
+	new_dsi_v_total =
+		((vsync_period - 1) << 16) | (hsync_period - 1);
+
+	MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x2C,
+			(current_dsi_v_total | 0x8000000));
+	if (new_dsi_v_total & 0x8000000) {
+		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x2C,
+				new_dsi_v_total);
+	} else {
+		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x2C,
+				(new_dsi_v_total | 0x8000000));
+		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x2C,
+				(new_dsi_v_total & 0x7ffffff));
+	}
+	ctrl_rev = MIPI_INP(ctrl_pdata->ctrl_base);
+	/* Flush DSI TIMING registers for 8916/8939 */
+	if (ctrl_rev == MDSS_DSI_HW_REV_103_1)
+		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x1e4, 0x1);
+	ctrl_pdata->panel_data.panel_info.mipi.frame_rate = new_fps;
+
+}
+
+static int __mdss_dsi_dfps_update_clks(struct mdss_panel_data *pdata,
+		int new_fps)
 {
 	int rc = 0;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	u32 dsi_ctrl;
+
+	if (pdata == NULL) {
+		pr_err("%s Invalid pdata\n", __func__);
+		return -EINVAL;
+	}
+
+	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
+			panel_data);
+	if (ctrl_pdata == NULL) {
+		pr_err("%s Invalid ctrl_pdata\n", __func__);
+		return -EINVAL;
+	}
+
+	rc = mdss_dsi_clk_div_config
+		(&ctrl_pdata->panel_data.panel_info, new_fps);
+	if (rc) {
+		pr_err("%s: unable to initialize the clk dividers\n",
+				__func__);
+		return rc;
+	}
+	ctrl_pdata->pclk_rate =
+		pdata->panel_info.mipi.dsi_pclk_rate;
+	ctrl_pdata->byte_clk_rate =
+		pdata->panel_info.clk_rate / 8;
+
+	if (pdata->panel_info.dfps_update
+			== DFPS_IMMEDIATE_CLK_UPDATE_MODE) {
+		dsi_ctrl = MIPI_INP((ctrl_pdata->ctrl_base) +
+				0x0004);
+		pdata->panel_info.mipi.frame_rate = new_fps;
+		dsi_ctrl &= ~0x2;
+		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x0004,
+				dsi_ctrl);
+		mdss_dsi_controller_cfg(true, pdata);
+		mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 0);
+		mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 1);
+		dsi_ctrl |= 0x2;
+		MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x0004,
+				dsi_ctrl);
+	}
+
+	return rc;
+}
+
+static int mdss_dsi_dfps_config(struct mdss_panel_data *pdata, int new_fps)
+{
+	int rc = 0;
+	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
+	struct mdss_dsi_ctrl_pdata *sctrl_pdata = NULL;
 
 	pr_debug("%s+:\n", __func__);
 
@@ -991,59 +1177,39 @@ static int mdss_dsi_dfps_config(struct mdss_panel_data *pdata, int new_fps)
 		return -EINVAL;
 	}
 
+	/*
+	 * DFPS registers were already programmed while programming
+	 * the first controller(DSI0). Ignore DSI1 reguest.
+	 */
+	if (mdss_dsi_is_slave_ctrl(ctrl_pdata)) {
+		pr_debug("%s DFPS already updated.\n", __func__);
+		return rc;
+	}
+
+	sctrl_pdata = mdss_dsi_get_slave_ctrl();
+
 	if (new_fps !=
 		ctrl_pdata->panel_data.panel_info.mipi.frame_rate) {
 		if (pdata->panel_info.dfps_update
 			== DFPS_IMMEDIATE_PORCH_UPDATE_MODE) {
-			u32 hsync_period, vsync_period;
-			u32 new_dsi_v_total, current_dsi_v_total;
-			vsync_period =
-				mdss_panel_get_vtotal(&pdata->panel_info);
-			hsync_period =
-				mdss_panel_get_htotal(&pdata->panel_info, true);
-			current_dsi_v_total =
-				MIPI_INP((ctrl_pdata->ctrl_base) + 0x2C);
-			new_dsi_v_total =
-				((vsync_period - 1) << 16) | (hsync_period - 1);
-			MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x2C,
-				(current_dsi_v_total | 0x8000000));
-			if (new_dsi_v_total & 0x8000000) {
-				MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x2C,
-					new_dsi_v_total);
-			} else {
-				MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x2C,
-					(new_dsi_v_total | 0x8000000));
-				MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x2C,
-					(new_dsi_v_total & 0x7ffffff));
-			}
-			pdata->panel_info.mipi.frame_rate = new_fps;
-		} else {
-			rc = mdss_dsi_clk_div_config
-				(&ctrl_pdata->panel_data.panel_info, new_fps);
-			if (rc) {
-				pr_err("%s: unable to initialize the clk dividers\n",
-								__func__);
-				return rc;
-			}
-			ctrl_pdata->pclk_rate =
-				pdata->panel_info.mipi.dsi_pclk_rate;
-			ctrl_pdata->byte_clk_rate =
-				pdata->panel_info.clk_rate / 8;
 
-			if (pdata->panel_info.dfps_update
-					== DFPS_IMMEDIATE_CLK_UPDATE_MODE) {
-				dsi_ctrl = MIPI_INP((ctrl_pdata->ctrl_base) +
-						    0x0004);
-				pdata->panel_info.mipi.frame_rate = new_fps;
-				dsi_ctrl &= ~0x2;
-				MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x0004,
-								dsi_ctrl);
-				mdss_dsi_controller_cfg(true, pdata);
-				mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 0);
-				mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 1);
-				dsi_ctrl |= 0x2;
-				MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x0004,
-								dsi_ctrl);
+			__mdss_dsi_update_video_mode_total(pdata, new_fps);
+			if (sctrl_pdata) {
+				pr_debug("%s Updating slave ctrl DFPS\n",
+						__func__);
+				__mdss_dsi_update_video_mode_total(
+						&sctrl_pdata->panel_data,
+						new_fps);
+			}
+
+		} else {
+			rc = __mdss_dsi_dfps_update_clks(pdata, new_fps);
+			if (!rc && sctrl_pdata) {
+				pr_debug("%s Updating slave ctrl DFPS\n",
+						__func__);
+				rc = __mdss_dsi_dfps_update_clks(
+						&sctrl_pdata->panel_data,
+						new_fps);
 			}
 		}
 	} else {
@@ -1163,7 +1329,20 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		rc = mdss_dsi_update_panel_config(ctrl_pdata,
 					(int)(unsigned long) arg);
 		break;
+	case MDSS_EVENT_FB_REGISTERED:
+		if (ctrl_pdata->registered) {
+			pr_debug("%s : event=%d, calling panel registered callback\n", __func__, event);
+			rc = ctrl_pdata->registered(pdata);
+		}
+		break;
+	case MDSS_EVENT_INTF_RESTORE:
+		mdss_dsi_ctrl_phy_restore(ctrl_pdata);
+		break;
 	default:
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+		if (ctrl_pdata->event_handler)
+			rc = ctrl_pdata->event_handler(pdata, event, arg);
+#endif
 		pr_debug("%s: unhandled event=%d\n", __func__, event);
 		break;
 	}
@@ -1497,6 +1676,13 @@ int dsi_panel_device_register(struct device_node *pan_node,
 	struct platform_device *ctrl_pdev = NULL;
 	bool dynamic_fps;
 	const char *data;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	const char backlight_tft_gpio [4][40] = {
+			"qcom,platform-backlight-i2c-scl-gpio",
+			"qcom,platform-backlight-i2c-sda-gpio",
+			"qcom,platform-backlight-en-gpio",
+			"qcom,platform-backlight-pwm-gpio"};
+#endif
 
 	mipi  = &(pinfo->mipi);
 
@@ -1620,12 +1806,27 @@ int dsi_panel_device_register(struct device_node *pan_node,
 		pinfo->new_fps = pinfo->mipi.frame_rate;
 	}
 
+	pinfo->panel_max_fps = mdss_panel_get_framerate(pinfo);
+	pinfo->panel_max_vtotal = mdss_panel_get_vtotal(pinfo);
 	ctrl_pdata->disp_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 		"qcom,platform-enable-gpio", 0);
 
 	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio))
 		pr_err("%s:%d, Disp_en gpio not specified\n",
 						__func__, __LINE__);
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	for (i = 0; i < MAX_BACKLIGHT_TFT_GPIO; i++) {
+		ctrl_pdata->backlight_tft_gpio[i] =
+				 of_get_named_gpio(ctrl_pdev->dev.of_node,
+						backlight_tft_gpio[i], 0);
+		if (!gpio_is_valid(ctrl_pdata->backlight_tft_gpio[i]))
+			pr_info("%s:%d, backlight_tft_gpio gpio%d not specified\n",
+							__func__, __LINE__, i+1);
+		else
+			pr_info("backlight gpio num : %d\n", ctrl_pdata->backlight_tft_gpio[i]);
+	}
+#endif
 
 	ctrl_pdata->bklt_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 		"qcom,platform-bklight-en-gpio", 0);
@@ -1638,6 +1839,29 @@ int dsi_panel_device_register(struct device_node *pan_node,
 		pr_err("%s:%d, reset gpio not specified\n",
 						__func__, __LINE__);
 
+	if (pinfo->type == MIPI_CMD_PANEL) {
+		ctrl_pdata->disp_te_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+							     "qcom,te-gpio", 0);
+
+		pr_err("%s:%d, Disp_te_gpio (%d)",__func__, __LINE__,ctrl_pdata->disp_te_gpio );
+
+		if (gpio_is_valid(ctrl_pdata->disp_te_gpio) &&
+						pinfo->type == MIPI_CMD_PANEL &&
+							pinfo->pdest == DISPLAY_1) {
+			rc = gpio_request(ctrl_pdata->disp_te_gpio, "disp_te");
+			if (rc) {
+				pr_err("request TE gpio failed, rc=%d\n",
+				       rc);
+				gpio_free(ctrl_pdata->disp_te_gpio);
+				return -ENODEV;
+			}
+			pr_debug("%s: te_gpio=%d\n", __func__,
+						ctrl_pdata->disp_te_gpio);
+		} else {
+			pr_err("%s:%d, Disp_te gpio not specified\n",
+							__func__, __LINE__);
+		}
+	}
 	if (pinfo->mode_gpio_state != MODE_GPIO_NOT_VALID) {
 
 		ctrl_pdata->mode_gpio = of_get_named_gpio(
@@ -1648,14 +1872,6 @@ int dsi_panel_device_register(struct device_node *pan_node,
 							__func__, __LINE__);
 	} else {
 		ctrl_pdata->mode_gpio = -EINVAL;
-	}
-
-	if (ctrl_pdata->panel_gpio_request){
-		rc = ctrl_pdata->panel_gpio_request(ctrl_pdata);
-		if (rc) {
-			pr_err("gpio request failed\n");
-			return rc;
-		}
 	}
 
 	if (mdss_dsi_clk_init(ctrl_pdev, ctrl_pdata)) {
@@ -1672,7 +1888,13 @@ int dsi_panel_device_register(struct device_node *pan_node,
 
 	ctrl_pdata->panel_data.event_handler = mdss_dsi_event_handler;
 
-	if (ctrl_pdata->status_mode == ESD_REG)
+	if (ctrl_pdata->status_mode == ESD_REG ||
+#if !defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+			ctrl_pdata->status_mode == ESD_REG_NT35596)
+#else
+			ctrl_pdata->status_mode == ESD_REG_NT35596 ||
+			ctrl_pdata->status_mode == ESD_REG_IRQ)
+#endif
 		ctrl_pdata->check_status = mdss_dsi_reg_status_check;
 	else if (ctrl_pdata->status_mode == ESD_BTA)
 		ctrl_pdata->check_status = mdss_dsi_bta_status_check;
@@ -1718,12 +1940,16 @@ int dsi_panel_device_register(struct device_node *pan_node,
 	}
 
 	if (pinfo->pdest == DISPLAY_1) {
-		mdss_debug_register_base("dsi0",
-			ctrl_pdata->ctrl_base, ctrl_pdata->reg_size);
+		mdss_debug_register_base("dsi0_ctrl", ctrl_pdata->ctrl_io.base,
+				ctrl_pdata->ctrl_io.len);
+		mdss_debug_register_base("dsi0_phy", ctrl_pdata->phy_io.base,
+				ctrl_pdata->phy_io.len);
 		ctrl_pdata->ndx = 0;
 	} else {
-		mdss_debug_register_base("dsi1",
-			ctrl_pdata->ctrl_base, ctrl_pdata->reg_size);
+		mdss_debug_register_base("dsi1_ctrl", ctrl_pdata->ctrl_io.base,
+				ctrl_pdata->ctrl_io.len);
+		mdss_debug_register_base("dsi1_phy", ctrl_pdata->phy_io.base,
+				ctrl_pdata->phy_io.len);
 		ctrl_pdata->ndx = 1;
 	}
 

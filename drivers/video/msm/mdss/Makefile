@@ -1,4 +1,3 @@
-ccflags-y := -Idrivers/video/msm/mdss
 mdss-mdp3-objs = mdp3.o mdp3_dma.o mdp3_ctrl.o dsi_status_v2.o
 mdss-mdp3-objs += mdp3_ppp.o mdp3_ppp_hwio.o mdp3_ppp_data.o
 obj-$(CONFIG_FB_MSM_MDSS_MDP3) += mdss-mdp3.o
@@ -27,11 +26,6 @@ mdss-dsi-objs += msm_mdss_io_8974.o
 obj-$(CONFIG_FB_MSM_MDSS) += mdss-dsi.o
 obj-$(CONFIG_FB_MSM_MDSS_EDP_PANEL) += mdss_edp.o
 obj-$(CONFIG_FB_MSM_MDSS_EDP_PANEL) += mdss_edp_aux.o
-obj-$(CONFIG_FB_MSM_MDSS_OLED_PANEL) += mdss_dsi_panel_oled.o
-obj-$(CONFIG_FB_PANEL_S6E8AA5X01) += smart_dimming_s6e8aa5x01.o
-
-# SERRANOVE panel
-obj-$(CONFIG_PANEL_S6E88A0_AMS427AP24_QHD) += S6E88A0_AMS427AP24/
 
 obj-$(CONFIG_FB_MSM_MDSS) += mdss_io_util.o
 obj-$(CONFIG_FB_MSM_MDSS_HDMI_PANEL) += mdss_hdmi_tx.o
@@ -47,6 +41,7 @@ mdss-qpic-objs := mdss_qpic.o mdss_fb.o mdss_qpic_panel.o
 obj-$(CONFIG_FB_MSM_QPIC) += mdss-qpic.o
 obj-$(CONFIG_FB_MSM_QPIC_ILI_QVGA_PANEL) += qpic_panel_ili_qvga.o
 
-obj-$(CONFIG_FB_MSM_MDSS) += mdss_fb.o mdss_log.o
+obj-$(CONFIG_FB_MSM_MDSS) += mdss_fb.o
 obj-$(CONFIG_COMPAT) += mdss_compat_utils.o
-obj-$(CONFIG_MDSS_MDNIE_LITE_TUNING) += mdnie/
+
+obj-$(CONFIG_FB_MSM_MDSS_SAMSUNG) += samsung/
